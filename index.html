@@ -1108,32 +1108,91 @@
     }
 
 
-    /* ============================================================
-       PHONE BUTTON FIT
-       ============================================================ */
-
-    @media (max-width: 420px) {
+        
+      /* ============================================================
+        PHONE BUTTON DISTANCE — REPLACE THE EXISTING PHONE RULES
+        ============================================================ */
 
       #location-buttons {
+        gap: clamp(10px, 4vw, 22px);
+        width: max-content;
+        max-width: calc(100vw - 12px);
+      }
 
-        bottom:
-          20px;
+      .location-button {
+        width: clamp(46px, 14.67vw, 55px);
+        height: clamp(46px, 14.67vw, 55px);
+        flex: 0 0 clamp(46px, 14.67vw, 55px);
+      }
 
-        gap:
-          clamp(
-            10px,
-            4vw,
-            18px
+      /*
+      * On narrower phones, reduce the gap gradually instead of
+      * letting the buttons become excessively close or overflow.
+      */
+      @media (max-width: 420px) {
+
+        #location-buttons {
+          bottom: 20px;
+
+          /*
+          * 5 buttons + 4 gaps must fit the viewport.
+          * Keep a useful gap for as long as possible.
+          */
+          gap: clamp(
+            8px,
+            calc((100vw - 235px) / 4),
+            16px
           );
 
-        max-width:
-          calc(
-            100vw - 12px
-          );
+          max-width: calc(100vw - 10px);
+        }
 
       }
 
-    }
+
+      /*
+      * Small phones:
+      * keep the buttons separated, while allowing their diameter
+      * to shrink slightly so the gap does not collapse.
+      */
+      @media (max-width: 380px) {
+
+        #location-buttons {
+          gap: clamp(
+            7px,
+            calc((100vw - 225px) / 4),
+            12px
+          );
+        }
+
+        .location-button {
+          width: 45px;
+          height: 45px;
+          flex-basis: 45px;
+        }
+
+      }
+
+
+      /*
+      * Very narrow phones:
+      * calculate the five-button row so there is still a visible
+      * distance between neighbouring buttons.
+      */
+      @media (max-width: 340px) {
+
+        #location-buttons {
+          gap: 6px;
+        }
+
+        .location-button {
+          width: 43px;
+          height: 43px;
+          flex-basis: 43px;
+        }
+
+      }
+
 
 
     @media (max-width: 350px) {
