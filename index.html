@@ -229,20 +229,16 @@
       cursor:
         grab;
 
-      touch-action:
-        none;
-
       /*
-       * Prevent browser gesture handling while the intro
-       * interaction blocker is active.
+       * IMPORTANT:
+       *
+       * During the first 5 interactions the blocker owns
+       * all touch/pointer input.
+       *
+       * This prevents the Photo Sphere Viewer from receiving
+       * pinch zoom before the interaction limit is reached.
        */
-      -webkit-user-select:
-        none;
-
-      user-select:
-        none;
-
-      -webkit-touch-callout:
+      touch-action:
         none;
     }
 
@@ -582,56 +578,6 @@
 
       outline-offset:
         2px;
-    }
-
-
-    /* ============================================================
-       PHONE BUTTON SPACING
-       ============================================================ */
-
-    @media (max-width: 600px) {
-
-      #location-buttons {
-
-        width:
-          calc(100vw - 24px);
-
-        gap:
-          clamp(
-            10px,
-            4.5vw,
-            24px
-          );
-
-        bottom:
-          20px;
-      }
-
-
-      .location-button {
-
-        width:
-          clamp(
-            46px,
-            13vw,
-            55px
-          );
-
-        height:
-          clamp(
-            46px,
-            13vw,
-            55px
-          );
-
-        flex-basis:
-          clamp(
-            46px,
-            13vw,
-            55px
-          );
-      }
-
     }
 
 
@@ -1246,19 +1192,18 @@
 
 
     /*
-     * This is deliberately NOT reset when another panorama
-     * starts its intro animation.
+     * IMPORTANT:
      *
-     * Therefore the five-interaction blocker applies globally
-     * to the current page session instead of restarting for
-     * every image.
+     * This counter is reset ONLY when a completely new panorama
+     * animation starts.
+     *
+     * It is NOT reset by every animation frame.
+     *
+     * Therefore the interaction limit is applied correctly to
+     * each new panorama animation.
      */
     let introInteractionAttempts =
       0;
-
-
-    const INTRO_UNLOCK_ATTEMPTS =
-      5;
 
 
     let isFirstPageLoad =
@@ -1301,22 +1246,37 @@
       0;
 
 
-    /*
-     * Used specifically for touch gestures.
-     *
-     * A two-finger pinch is treated as ONE interaction,
-     * not two separate interactions.
-     */
-    let introTouchGestureActive =
-      false;
-
-
-    let introTouchGestureCounted =
-      false;
-
-
     const DRAG_THRESHOLD =
       8;
+
+
+    const INTRO_UNLOCK_ATTEMPTS =
+      5;
+
+
+    /* ============================================================
+       BLOCKER GESTURE STATE
+       ============================================================ */
+
+    /*
+     * Pointer Events are used here instead of separate pointer +
+     * touch handlers.
+     *
+     * This is important on phones because a single pinch produces
+     * multiple pointer events.
+     *
+     * We count only the FIRST pointer of a new gesture.
+     */
+    let blockerActivePointers =
+      0;
+
+
+    let blockerGestureActive =
+      false;
+
+
+    let blockerGestureMoved =
+      false;
 
 
     /* ============================================================
@@ -1996,7 +1956,7 @@
 
 
     /* ============================================================
-       INTERACTION
+       INTERACTION ENABLE / DISABLE
        ============================================================ */
 
     function enableUserInteraction() {
@@ -2045,6 +2005,10 @@
     }
 
 
+    /* ============================================================
+       STOP AUTOMATIC ROTATION
+       ============================================================ */
+
     function stopAutomaticRotation() {
 
       if (isIntroActive) {
@@ -2075,7 +2039,7 @@
 
 
     /* ============================================================
-       POST-INTRO POINTER
+       POST INTRO POINTER
        ============================================================ */
 
     function handlePostIntroPointerDown(
@@ -2251,7 +2215,7 @@
 
 
     /* ============================================================
-       TOUCH POST-INTRO
+       POST INTRO TOUCH
        ============================================================ */
 
     viewer.container.addEventListener(
@@ -2460,169 +2424,176 @@
         'switching'
       );
 
+
+      /*
+       * Reset blocker gesture state so the next gesture is
+       * handled entirely by Photo Sphere Viewer.
+       */
+      blockerActivePointers =
+        0;
+
+
+      blockerGestureActive =
+        false;
+
+
+      blockerGestureMoved =
+        false;
+
     }
 
 
     /* ============================================================
-       INTRO BLOCKER POINTER
+       NEW INTRO BLOCKER
        ============================================================ */
 
-    function handleIntroPointerDown(
-      event
-    ) {
-
-      if (!isIntroActive) {
-
-        return;
-
-      }
-
-
-      introPointerDown =
-        true;
-
-
-      introDragDetected =
-        false;
-
-
-      introStartX =
-        event.clientX;
-
-
-      introStartY =
-        event.clientY;
-
-
-      blocker.classList.add(
-        'dragging'
-      );
-
-    }
-
-
-    function handleIntroPointerMove(
-      event
-    ) {
-
-      if (
-
-        !isIntroActive ||
-
-        !introPointerDown ||
-
-        introDragDetected
-
-      ) {
-
-        return;
-
-      }
-
-
-      const dx =
-        event.clientX -
-        introStartX;
-
-
-      const dy =
-        event.clientY -
-        introStartY;
-
-
-      const distance =
-        Math.sqrt(
-
-          dx * dx +
-          dy * dy
-
-        );
-
-
-      if (
-
-        distance <
-        DRAG_THRESHOLD
-
-      ) {
-
-        return;
-
-      }
-
-
-      introDragDetected =
-        true;
-
-
-      introInteractionAttempts++;
-
-
-      /*
-       * Until the fifth interaction:
-       *
-       * - the intro keeps running
-       * - pointer movement is blocked
-       * - the viewer cannot receive the gesture
-       */
-
-      if (
-
-        introInteractionAttempts <
-        INTRO_UNLOCK_ATTEMPTS
-
-      ) {
-
-        event.preventDefault();
-
-        event.stopPropagation();
-
-        return;
-
-      }
-
-
-      /*
-       * Fifth interaction:
-       *
-       * stop the animation and immediately unlock
-       * normal Photo Sphere Viewer interaction.
-       */
-
-      stopIntroAndUnlock();
-
-    }
-
-
-    function handleIntroPointerUp() {
-
-      if (!isIntroActive) {
-
-        return;
-
-      }
-
-
-      introPointerDown =
-        false;
-
-
-      introDragDetected =
-        false;
-
-
-      blocker.classList.remove(
-        'dragging'
-      );
-
-    }
-
+    /*
+     * This is intentionally POINTER-EVENT ONLY.
+     *
+     * Do NOT add separate touchstart/touchmove handlers here.
+     *
+     * On modern phones Pointer Events represent:
+     *
+     *   - one-finger touch
+     *   - two-finger pinch
+     *   - mouse
+     *   - pen
+     *
+     * correctly.
+     *
+     * A pinch creates two pointerdown events, but both belong to
+     * the SAME gesture. Only the first pointerdown increments the
+     * interaction counter.
+     */
 
     blocker.addEventListener(
 
       'pointerdown',
 
-      handleIntroPointerDown,
+      (event) => {
+
+        if (!isIntroActive) {
+
+          return;
+
+        }
+
+
+        /*
+         * Buttons are outside the blocker while visible, but keep
+         * this guard here so they can never be counted accidentally.
+         */
+        if (
+          event.target.closest &&
+          event.target.closest(
+            '#location-buttons'
+          )
+        ) {
+
+          return;
+
+        }
+
+
+        if (
+          blockerActivePointers === 0
+        ) {
+
+          /*
+           * ONE interaction per new gesture.
+           *
+           * This happens immediately on touch/pointer down,
+           * including a pinch gesture.
+           */
+          introInteractionAttempts++;
+
+
+          blockerGestureActive =
+            true;
+
+
+          blockerGestureMoved =
+            false;
+
+
+          introPointerDown =
+            true;
+
+
+          introDragDetected =
+            false;
+
+
+          introStartX =
+            event.clientX;
+
+
+          introStartY =
+            event.clientY;
+
+
+          blocker.classList.add(
+            'dragging'
+          );
+
+
+          /*
+           * The fifth interaction immediately unlocks the viewer
+           * and stops the animation.
+           */
+          if (
+
+            introInteractionAttempts >=
+            INTRO_UNLOCK_ATTEMPTS
+
+          ) {
+
+            stopIntroAndUnlock();
+
+            /*
+             * Do not allow the current pointer event to continue
+             * through the blocker.
+             */
+            event.preventDefault();
+
+            event.stopPropagation();
+
+            return;
+
+          }
+
+        }
+
+
+        blockerActivePointers++;
+
+
+        /*
+         * Capture every pointer belonging to this gesture.
+         *
+         * This is important for pinch gestures because the second
+         * finger may move independently after entering the screen.
+         */
+        try {
+
+          blocker.setPointerCapture(
+            event.pointerId
+          );
+
+        }
+
+        catch (error) {
+
+          // Intentionally ignored.
+
+        }
+
+
+        event.preventDefault();
+
+        event.stopPropagation();
+
+      },
 
       {
         capture:
@@ -2639,7 +2610,85 @@
 
       'pointermove',
 
-      handleIntroPointerMove,
+      (event) => {
+
+        if (!isIntroActive) {
+
+          return;
+
+        }
+
+
+        if (!blockerGestureActive) {
+
+          return;
+
+        }
+
+
+        if (
+          blockerActivePointers <= 0
+        ) {
+
+          return;
+
+        }
+
+
+        /*
+         * Movement is deliberately NOT counted as additional
+         * interactions.
+         *
+         * One drag = one interaction.
+         * One pinch = one interaction.
+         */
+        if (
+          !blockerGestureMoved
+        ) {
+
+          const dx =
+            event.clientX -
+            introStartX;
+
+
+          const dy =
+            event.clientY -
+            introStartY;
+
+
+          const distance =
+            Math.sqrt(
+
+              dx * dx +
+              dy * dy
+
+            );
+
+
+          if (
+
+            distance >=
+            DRAG_THRESHOLD
+
+          ) {
+
+            blockerGestureMoved =
+              true;
+
+
+            introDragDetected =
+              true;
+
+          }
+
+        }
+
+
+        event.preventDefault();
+
+        event.stopPropagation();
+
+      },
 
       {
         capture:
@@ -2652,11 +2701,95 @@
     );
 
 
+    function finishBlockerPointer(
+      event
+    ) {
+
+      if (!isIntroActive) {
+
+        return;
+
+      }
+
+
+      try {
+
+        if (
+          blocker.hasPointerCapture(
+            event.pointerId
+          )
+        ) {
+
+          blocker.releasePointerCapture(
+            event.pointerId
+          );
+
+        }
+
+      }
+
+      catch (error) {
+
+        // Intentionally ignored.
+
+      }
+
+
+      blockerActivePointers =
+
+        Math.max(
+
+          0,
+
+          blockerActivePointers - 1
+
+        );
+
+
+      /*
+       * Only when ALL fingers have left do we end the gesture.
+       *
+       * Therefore a two-finger pinch remains one interaction.
+       */
+      if (
+        blockerActivePointers === 0
+      ) {
+
+        blockerGestureActive =
+          false;
+
+
+        blockerGestureMoved =
+          false;
+
+
+        introPointerDown =
+          false;
+
+
+        introDragDetected =
+          false;
+
+
+        blocker.classList.remove(
+          'dragging'
+        );
+
+      }
+
+
+      event.preventDefault();
+
+      event.stopPropagation();
+
+    }
+
+
     blocker.addEventListener(
 
       'pointerup',
 
-      handleIntroPointerUp,
+      finishBlockerPointer,
 
       {
         capture:
@@ -2673,75 +2806,7 @@
 
       'pointercancel',
 
-      handleIntroPointerUp,
-
-      {
-        capture:
-          true,
-
-        passive:
-          false
-      }
-
-    );
-
-
-    /* ============================================================
-       INTRO TOUCH
-       ============================================================ */
-
-    /*
-     * IMPORTANT:
-     *
-     * Touch handling is separate from pointer handling.
-     *
-     * This is what prevents pinch-to-zoom from reaching
-     * Photo Sphere Viewer while the intro blocker is active.
-     */
-
-    blocker.addEventListener(
-
-      'touchstart',
-
-      (event) => {
-
-        if (!isIntroActive) {
-
-          return;
-
-        }
-
-
-        /*
-         * Every new touch gesture begins here.
-         *
-         * One-finger drag = one interaction.
-         * Two-finger pinch = one interaction.
-         */
-
-        if (
-          !introTouchGestureActive
-        ) {
-
-          introTouchGestureActive =
-            true;
-
-          introTouchGestureCounted =
-            false;
-
-        }
-
-
-        /*
-         * Do NOT allow the browser or Photo Sphere Viewer
-         * to interpret this as a zoom gesture.
-         */
-
-        event.preventDefault();
-
-        event.stopPropagation();
-
-      },
+      finishBlockerPointer,
 
       {
         capture:
@@ -2756,7 +2821,7 @@
 
     blocker.addEventListener(
 
-      'touchmove',
+      'lostpointercapture',
 
       (event) => {
 
@@ -2768,187 +2833,43 @@
 
 
         /*
-         * This is the critical part for phone zoom:
-         *
-         * Even with two fingers, the event remains trapped
-         * by the blocker until the fifth interaction.
+         * Browser-level pointer cancellation must also clean up
+         * the gesture state.
          */
+        blockerActivePointers =
 
-        event.preventDefault();
+          Math.max(
 
-        event.stopPropagation();
+            0,
+
+            blockerActivePointers - 1
+
+          );
 
 
         if (
-          introTouchGestureCounted
+          blockerActivePointers === 0
         ) {
 
-          return;
-
-        }
-
-
-        const touch =
-          event.touches[0];
-
-
-        if (!touch) {
-
-          return;
-
-        }
-
-
-        /*
-         * Count a gesture only after actual movement.
-         * A pinch also reaches this path.
-         */
-
-        let movementDetected =
-          false;
-
-
-        if (
-          event.touches.length >= 2
-        ) {
-
-          movementDetected =
-            true;
-
-        }
-
-        else if (
-          event.touches.length === 1
-        ) {
-
-          /*
-           * For a normal one-finger drag, compare against
-           * the initial touch position.
-           */
-
-          const dx =
-            touch.clientX -
-            introStartX;
-
-
-          const dy =
-            touch.clientY -
-            introStartY;
-
-
-          const distance =
-            Math.sqrt(
-
-              dx * dx +
-              dy * dy
-
-            );
-
-
-          if (
-            distance >=
-            DRAG_THRESHOLD
-          ) {
-
-            movementDetected =
-              true;
-
-          }
-
-        }
-
-
-        if (!movementDetected) {
-
-          return;
-
-        }
-
-
-        introTouchGestureCounted =
-          true;
-
-
-        introInteractionAttempts++;
-
-
-        /*
-         * Before five interactions:
-         *
-         * animation continues
-         * and pinch/zoom remains completely blocked.
-         */
-
-        if (
-
-          introInteractionAttempts <
-          INTRO_UNLOCK_ATTEMPTS
-
-        ) {
-
-          return;
-
-        }
-
-
-        /*
-         * Fifth interaction:
-         *
-         * stop animation and unlock normal touch interaction.
-         */
-
-        stopIntroAndUnlock();
-
-      },
-
-      {
-        capture:
-          true,
-
-        passive:
-          false
-      }
-
-    );
-
-
-    blocker.addEventListener(
-
-      'touchend',
-
-      (event) => {
-
-        if (!isIntroActive) {
-
-          introTouchGestureActive =
+          blockerGestureActive =
             false;
 
-          introTouchGestureCounted =
+
+          blockerGestureMoved =
             false;
 
-          return;
 
-        }
-
-
-        event.preventDefault();
-
-        event.stopPropagation();
-
-
-        /*
-         * Only reset when all fingers have left.
-         */
-
-        if (
-          event.touches.length === 0
-        ) {
-
-          introTouchGestureActive =
+          introPointerDown =
             false;
 
-          introTouchGestureCounted =
+
+          introDragDetected =
             false;
+
+
+          blocker.classList.remove(
+            'dragging'
+          );
 
         }
 
@@ -2959,51 +2880,7 @@
           true,
 
         passive:
-          false
-      }
-
-    );
-
-
-    blocker.addEventListener(
-
-      'touchcancel',
-
-      (event) => {
-
-        if (!isIntroActive) {
-
-          introTouchGestureActive =
-            false;
-
-          introTouchGestureCounted =
-            false;
-
-          return;
-
-        }
-
-
-        event.preventDefault();
-
-        event.stopPropagation();
-
-
-        introTouchGestureActive =
-          false;
-
-
-        introTouchGestureCounted =
-          false;
-
-      },
-
-      {
-        capture:
-          true,
-
-        passive:
-          false
+          true
       }
 
     );
@@ -4424,6 +4301,25 @@
           true;
 
 
+        /*
+         * New panorama animation = new five-interaction window.
+         */
+        introInteractionAttempts =
+          0;
+
+
+        blockerActivePointers =
+          0;
+
+
+        blockerGestureActive =
+          false;
+
+
+        blockerGestureMoved =
+          false;
+
+
         viewer.container.classList.add(
           'switching'
         );
@@ -4556,6 +4452,28 @@
 
             isIntroActive =
               true;
+
+
+            /*
+             * Every NEW panorama gets its own five-interaction
+             * protection window.
+             *
+             * This is intentionally reset here.
+             */
+            introInteractionAttempts =
+              0;
+
+
+            blockerActivePointers =
+              0;
+
+
+            blockerGestureActive =
+              false;
+
+
+            blockerGestureMoved =
+              false;
 
 
             hideFinishedUI();
@@ -4958,7 +4876,6 @@
       }
 
     );
-
 
   </script>
 
