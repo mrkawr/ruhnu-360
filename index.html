@@ -75,6 +75,11 @@
     }
 
 
+    /*
+     * IMPORTANT:
+     * This class is NOT used during normal panorama switching.
+     */
+
     #viewer.switching {
 
       visibility:
@@ -248,6 +253,19 @@
     }
 
 
+    /*
+     * Once the first intro has been passed, the blocker is
+     * permanently disabled. It is NEVER recreated for later
+     * panorama animations.
+     */
+
+    #interaction-blocker.permanently-unlocked {
+
+      display:
+        none;
+    }
+
+
     /* ============================================================
        LOCATION BUTTONS
        ============================================================ */
@@ -278,17 +296,25 @@
       justify-content:
         center;
 
+      /*
+       * The gap remains reasonably large on normal screens.
+       * On narrow phones it contracts only as much as necessary.
+       */
+
       gap:
-        30px;
+        clamp(
+          11px,
+          4.8vw,
+          30px
+        );
 
       width:
         max-content;
 
       max-width:
-        calc(100vw - 24px);
-
-      box-sizing:
-        border-box;
+        calc(
+          100vw - 18px
+        );
 
       opacity:
         0;
@@ -327,14 +353,32 @@
       position:
         relative;
 
+      /*
+       * 55px on normal screens.
+       * Slightly smaller only when the phone is too narrow
+       * to fit all five buttons with a sensible gap.
+       */
+
       width:
-        55px;
+        clamp(
+          47px,
+          14.67vw,
+          55px
+        );
 
       height:
-        55px;
+        clamp(
+          47px,
+          14.67vw,
+          55px
+        );
 
       flex:
-        0 0 55px;
+        0 0 clamp(
+          47px,
+          14.67vw,
+          55px
+        );
 
       padding:
         0;
@@ -452,61 +496,6 @@
           0,
           0
         );
-    }
-
-
-    /* ============================================================
-       PHONE BUTTON SPACING
-       ============================================================ */
-
-    @media (max-width: 600px) {
-
-      #location-buttons {
-
-        /*
-         * 55px x 5 = 275px.
-         *
-         * The gap is reduced gradually on narrower screens,
-         * but never below 12px.
-         *
-         * This keeps a clearly visible distance between buttons
-         * while preventing the group from running outside the
-         * screen.
-         */
-
-        gap:
-          clamp(
-            12px,
-            calc(
-              (
-                100vw -
-                24px -
-                275px
-              ) / 4
-            ),
-            24px
-          );
-
-        max-width:
-          calc(100vw - 24px);
-
-      }
-
-    }
-
-
-    @media (max-width: 360px) {
-
-      #location-buttons {
-
-        gap:
-          10px;
-
-        max-width:
-          calc(100vw - 16px);
-
-      }
-
     }
 
 
@@ -1065,6 +1054,57 @@
       }
     }
 
+
+    /* ============================================================
+       PHONE BUTTON FIT
+       ============================================================ */
+
+    @media (max-width: 420px) {
+
+      #location-buttons {
+
+        bottom:
+          20px;
+
+        gap:
+          clamp(
+            10px,
+            4vw,
+            18px
+          );
+
+        max-width:
+          calc(
+            100vw - 12px
+          );
+      }
+
+    }
+
+
+    @media (max-width: 350px) {
+
+      #location-buttons {
+
+        gap:
+          9px;
+      }
+
+
+      .location-button {
+
+        width:
+          46px;
+
+        height:
+          46px;
+
+        flex-basis:
+          46px;
+      }
+
+    }
+
   </style>
 
 </head>
@@ -1173,6 +1213,7 @@
 
         START_YAW:
           -60
+
       },
 
 
@@ -1180,6 +1221,7 @@
 
         START_YAW:
           300
+
       },
 
 
@@ -1187,6 +1229,7 @@
 
         START_YAW:
           120
+
       },
 
 
@@ -1194,6 +1237,7 @@
 
         START_YAW:
           120
+
       },
 
 
@@ -1201,6 +1245,7 @@
 
         START_YAW:
           0
+
       }
 
     };
@@ -1249,14 +1294,21 @@
     /*
      * IMPORTANT:
      *
-     * This is ONLY for the very first page-load intro.
-     *
-     * It is deliberately NOT reset when another panorama
-     * is selected.
+     * This counter is ONLY used by the FIRST intro.
+     * It is NEVER reset when another panorama is selected.
      */
 
     let introInteractionAttempts =
       0;
+
+
+    /*
+     * Once true, the five-drag gate can NEVER appear again
+     * during this page session.
+     */
+
+    let hasPassedIntroGate =
+      false;
 
 
     let isFirstPageLoad =
@@ -1302,11 +1354,6 @@
     const DRAG_THRESHOLD =
       8;
 
-
-    /*
-     * The 5-attempt blocker is only used during the
-     * first page-load intro.
-     */
 
     const INTRO_UNLOCK_ATTEMPTS =
       6;
@@ -1428,45 +1475,20 @@
       0xf5fafe;
 
 
-    /* ============================================================
-       PHONE ZOOM
-       ============================================================ */
-
-    const IS_TOUCH_DEVICE =
-
-      (
-        'ontouchstart' in window
-      ) ||
-
-      (
-        navigator.maxTouchPoints >
-        0
-      );
-
-
     /*
-     * Only touch/pinch zoom is slowed.
+     * Photo Sphere Viewer uses zoomSpeed for mouse-wheel,
+     * touch-pinch and navbar zoom.
      *
-     * The panorama intro animations are NOT modified.
-     *
-     * 0.45 means the user's pinch movement produces roughly
-     * 45% of the normal zoom response.
+     * Desktop stays at 1.
+     * Phone uses 0.55.
      */
 
-    const PHONE_ZOOM_RESPONSE =
-      0.45;
+    const DESKTOP_ZOOM_SPEED =
+      1;
 
 
-    let lastTouchDistance =
-      null;
-
-
-    let touchZoomLevel =
-      null;
-
-
-    let applyingTouchZoom =
-      false;
+    const PHONE_ZOOM_SPEED =
+      0.55;
 
 
     /* ============================================================
@@ -1521,6 +1543,23 @@
 
 
     /* ============================================================
+       PHONE DETECTION
+       ============================================================ */
+
+    function isPhoneDevice() {
+
+      return (
+
+        window.matchMedia(
+          '(max-width: 768px)'
+        ).matches
+
+      );
+
+    }
+
+
+    /* ============================================================
        VIEWER
        ============================================================ */
 
@@ -1566,6 +1605,18 @@
         moveInertia:
           false,
 
+        /*
+         * This changes only USER zoom sensitivity.
+         * It does not affect any intro animation zoom values.
+         */
+
+        zoomSpeed:
+          isPhoneDevice()
+            ?
+            PHONE_ZOOM_SPEED
+            :
+            DESKTOP_ZOOM_SPEED,
+
         defaultTransition: {
 
           speed:
@@ -1576,9 +1627,45 @@
 
           effect:
             'black'
+
         }
 
       });
+
+
+    /* ============================================================
+       ZOOM SPEED ON RESIZE / DEVICE CHANGE
+       ============================================================ */
+
+    function updateZoomSensitivity() {
+
+      viewer.setOption(
+
+        'zoomSpeed',
+
+        isPhoneDevice()
+          ?
+          PHONE_ZOOM_SPEED
+          :
+          DESKTOP_ZOOM_SPEED
+
+      );
+
+    }
+
+
+    window.addEventListener(
+
+      'resize',
+
+      updateZoomSensitivity,
+
+      {
+        passive:
+          true
+      }
+
+    );
 
 
     /* ============================================================
@@ -1615,7 +1702,9 @@
 
       catch (error) {
 
-        // Intentionally ignored.
+        /*
+         * Intentionally ignored.
+         */
 
       }
 
@@ -1623,6 +1712,133 @@
 
 
     setRendererBackground();
+
+
+    /* ============================================================
+       PANORAMA PRELOAD / DECODE
+       ============================================================ */
+
+    /*
+     * This is specifically to prevent a new panorama from entering
+     * the animation while its browser image decode is still settling.
+     *
+     * It does NOT alter the animation timings or easing.
+     */
+
+    const panoramaPreloadCache =
+      new Map();
+
+
+    function preloadPanorama(
+      panorama
+    ) {
+
+      if (
+        panoramaPreloadCache.has(
+          panorama
+        )
+      ) {
+
+        return panoramaPreloadCache.get(
+          panorama
+        );
+
+      }
+
+
+      const promise =
+        new Promise(
+          (resolve) => {
+
+            const image =
+              new Image();
+
+
+            image.decoding =
+              'async';
+
+
+            image.onload =
+              async () => {
+
+                try {
+
+                  if (
+                    typeof image.decode ===
+                    'function'
+                  ) {
+
+                    await image.decode();
+
+                  }
+
+                }
+
+                catch (error) {
+
+                  /*
+                   * decode() can reject after a successful
+                   * load on some browsers. The image itself
+                   * is still usable.
+                   */
+
+                }
+
+
+                resolve(
+                  image
+                );
+
+              };
+
+
+            image.onerror =
+              () => {
+
+                resolve(
+                  null
+                );
+
+              };
+
+
+            image.src =
+              panorama;
+
+          }
+
+        );
+
+
+      panoramaPreloadCache.set(
+        panorama,
+        promise
+      );
+
+
+      return promise;
+
+    }
+
+
+    /*
+     * Start decoding all five images immediately.
+     * This happens independently of the animation.
+     */
+
+    Object.keys(
+      PANORAMAS
+    ).forEach(
+
+      (panorama) => {
+
+        preloadPanorama(
+          panorama
+        );
+
+      }
+
+    );
 
 
     /* ============================================================
@@ -1671,7 +1887,9 @@
        EASING
        ============================================================ */
 
-    function smootherStep(t) {
+    function smootherStep(
+      t
+    ) {
 
       return (
 
@@ -1706,7 +1924,9 @@
     }
 
 
-    function easeOutCubic(t) {
+    function easeOutCubic(
+      t
+    ) {
 
       return (
 
@@ -1722,7 +1942,9 @@
     }
 
 
-    function easeInOutSine(t) {
+    function easeInOutSine(
+      t
+    ) {
 
       return -(
 
@@ -1735,7 +1957,9 @@
     }
 
 
-    function easeInOutCubic(t) {
+    function easeInOutCubic(
+      t
+    ) {
 
       return (
 
@@ -1762,7 +1986,9 @@
     }
 
 
-    function easeInOutQuint(t) {
+    function easeInOutQuint(
+      t
+    ) {
 
       return (
 
@@ -1791,7 +2017,9 @@
     }
 
 
-    function easeOutSeptic(t) {
+    function easeOutSeptic(
+      t
+    ) {
 
       return (
 
@@ -1975,6 +2203,7 @@
     ) {
 
       locationButtonElements.forEach(
+
         (button) => {
 
           button.classList.toggle(
@@ -1987,6 +2216,7 @@
           );
 
         }
+
       );
 
     }
@@ -2044,14 +2274,39 @@
           true,
 
         touchmove:
-          true
+          true,
+
+        zoomSpeed:
+          isPhoneDevice()
+            ?
+            PHONE_ZOOM_SPEED
+            :
+            DESKTOP_ZOOM_SPEED
 
       });
 
 
-      blocker.classList.add(
-        'unlocked'
-      );
+      /*
+       * Only the first intro uses the blocker.
+       * After that it is permanently removed.
+       */
+
+      if (
+        hasPassedIntroGate
+      ) {
+
+        blocker.classList.add(
+          'permanently-unlocked'
+        );
+
+      }
+      else {
+
+        blocker.classList.add(
+          'unlocked'
+        );
+
+      }
 
     }
 
@@ -2072,9 +2327,23 @@
       });
 
 
-      blocker.classList.remove(
-        'unlocked'
-      );
+      /*
+       * NEVER bring the blocker back after the first unlock.
+       */
+
+      if (
+        !hasPassedIntroGate
+      ) {
+
+        blocker.classList.remove(
+          'unlocked'
+        );
+
+        blocker.classList.remove(
+          'permanently-unlocked'
+        );
+
+      }
 
     }
 
@@ -2327,49 +2596,6 @@
         pointerStartY =
           touch.clientY;
 
-
-        /*
-         * Reset pinch tracking whenever a new touch begins.
-         */
-
-        if (
-          event.touches.length >= 2
-        ) {
-
-          const a =
-            event.touches[0];
-
-          const b =
-            event.touches[1];
-
-
-          lastTouchDistance =
-            Math.hypot(
-
-              a.clientX -
-              b.clientX,
-
-              a.clientY -
-              b.clientY
-
-            );
-
-
-          touchZoomLevel =
-            viewer.getZoomLevel();
-
-        }
-
-        else {
-
-          lastTouchDistance =
-            null;
-
-          touchZoomLevel =
-            null;
-
-        }
-
       },
 
       {
@@ -2383,28 +2609,20 @@
     );
 
 
-    /*
-     * PHONE PINCH ZOOM
-     *
-     * This does not alter any intro animation.
-     * It only reduces the response of a two-finger pinch.
-     */
-
     viewer.container.addEventListener(
 
       'touchmove',
 
       (event) => {
 
-        if (isIntroActive) {
-
-          return;
-
-        }
-
-
         if (
-          event.touches.length < 2
+
+          isIntroActive ||
+
+          !isPointerDown ||
+
+          dragHasMoved
+
         ) {
 
           return;
@@ -2412,118 +2630,50 @@
         }
 
 
-        if (!IS_TOUCH_DEVICE) {
+        const touch =
+          event.touches[0];
+
+
+        if (!touch) {
 
           return;
 
         }
 
 
-        const a =
-          event.touches[0];
+        const dx =
+          touch.clientX -
+          pointerStartX;
 
-        const b =
-          event.touches[1];
+
+        const dy =
+          touch.clientY -
+          pointerStartY;
 
 
         const distance =
-          Math.hypot(
+          Math.sqrt(
 
-            a.clientX -
-            b.clientX,
-
-            a.clientY -
-            b.clientY
+            dx * dx +
+            dy * dy
 
           );
 
 
         if (
-          lastTouchDistance === null
+
+          distance >=
+          DRAG_THRESHOLD
+
         ) {
 
-          lastTouchDistance =
-            distance;
+          dragHasMoved =
+            true;
 
-          touchZoomLevel =
-            viewer.getZoomLevel();
 
-          return;
+          stopAutomaticRotation();
 
         }
-
-
-        if (
-          touchZoomLevel === null
-        ) {
-
-          touchZoomLevel =
-            viewer.getZoomLevel();
-
-        }
-
-
-        const distanceDelta =
-
-          distance -
-          lastTouchDistance;
-
-
-        /*
-         * Compress the pinch movement.
-         *
-         * Positive delta = fingers moving apart = zoom in.
-         * Negative delta = fingers moving together = zoom out.
-         */
-
-        const zoomDelta =
-
-          distanceDelta *
-          PHONE_ZOOM_RESPONSE *
-          0.05;
-
-
-        touchZoomLevel =
-
-          Math.max(
-
-            0,
-
-            Math.min(
-
-              viewer.getMaxZoomLevel(),
-
-              touchZoomLevel +
-              zoomDelta
-
-            )
-
-          );
-
-
-        /*
-         * Prevent the built-in touch zoom from applying the
-         * full raw pinch movement as well.
-         */
-
-        event.preventDefault();
-
-
-        applyingTouchZoom =
-          true;
-
-
-        viewer.zoom(
-          touchZoomLevel
-        );
-
-
-        applyingTouchZoom =
-          false;
-
-
-        lastTouchDistance =
-          distance;
 
       },
 
@@ -2532,7 +2682,7 @@
           true,
 
         passive:
-          false
+          true
       }
 
     );
@@ -2542,51 +2692,7 @@
 
       'touchend',
 
-      (event) => {
-
-        if (
-          event.touches.length < 2
-        ) {
-
-          lastTouchDistance =
-            null;
-
-          touchZoomLevel =
-            null;
-
-        }
-
-
-        handlePostIntroPointerUp();
-
-      },
-
-      {
-        capture:
-          true,
-
-        passive:
-          true
-      }
-
-    );
-
-
-    viewer.container.addEventListener(
-
-      'touchcancel',
-
-      () => {
-
-        lastTouchDistance =
-          null;
-
-        touchZoomLevel =
-          null;
-
-        handlePostIntroPointerUp();
-
-      },
+      handlePostIntroPointerUp,
 
       {
         capture:
@@ -2624,6 +2730,15 @@
         false;
 
 
+      /*
+       * This is the permanent transition out of the
+       * five-drag intro gate.
+       */
+
+      hasPassedIntroGate =
+        true;
+
+
       animationGeneration++;
 
 
@@ -2643,6 +2758,11 @@
 
 
       enableUserInteraction();
+
+
+      blocker.classList.add(
+        'permanently-unlocked'
+      );
 
 
       hideInteractionGuides();
@@ -2668,7 +2788,17 @@
       event
     ) {
 
-      if (!isIntroActive) {
+      /*
+       * Absolutely no five-drag logic after the first intro.
+       */
+
+      if (
+
+        !isIntroActive ||
+
+        hasPassedIntroGate
+
+      ) {
 
         return;
 
@@ -2705,6 +2835,8 @@
       if (
 
         !isIntroActive ||
+
+        hasPassedIntroGate ||
 
         !introPointerDown ||
 
@@ -2752,15 +2884,6 @@
         true;
 
 
-      /*
-       * IMPORTANT:
-       *
-       * The counter is ONLY checked while the very first
-       * intro blocker is active.
-       *
-       * Panorama button animations never call this logic.
-       */
-
       introInteractionAttempts++;
 
 
@@ -2787,7 +2910,9 @@
 
     function handleIntroPointerUp() {
 
-      if (!isIntroActive) {
+      if (
+        hasPassedIntroGate
+      ) {
 
         return;
 
@@ -2887,7 +3012,13 @@
 
       (event) => {
 
-        if (!isIntroActive) {
+        if (
+
+          !isIntroActive ||
+
+          hasPassedIntroGate
+
+        ) {
 
           return;
 
@@ -2942,6 +3073,8 @@
         if (
 
           !isIntroActive ||
+
+          hasPassedIntroGate ||
 
           !introPointerDown ||
 
@@ -3147,6 +3280,13 @@
       isAutoRotationActive =
         false;
 
+
+      /*
+       * After the first intro, this only disables the viewer's
+       * native interaction during the actual animation.
+       *
+       * It does NOT restore the five-drag blocker.
+       */
 
       disableUserInteraction();
 
@@ -4453,7 +4593,7 @@
 
       'ready',
 
-      () => {
+      async () => {
 
         animationGeneration++;
 
@@ -4475,6 +4615,28 @@
           'maxFov',
           UHIS1_INTRO_MAX_FOV
         );
+
+
+        /*
+         * Make absolutely sure the first image has completed
+         * browser decoding before the animation starts.
+         */
+
+        await preloadPanorama(
+          'Ühis1.jpg'
+        );
+
+
+        if (
+
+          generation !==
+          animationGeneration
+
+        ) {
+
+          return;
+
+        }
 
 
         setUhis1IntroCamera();
@@ -4609,21 +4771,36 @@
             /*
              * IMPORTANT:
              *
-             * We intentionally DO NOT reset:
-             *
-             * introInteractionAttempts
-             *
-             * here.
-             *
-             * The 5/6-drag unlock belongs only to the initial
-             * page-load blocker.
-             *
-             * Buttons switch panoramas without triggering that
-             * blocker again.
+             * The previous panorama remains visible.
+             * Nothing is faded out.
              */
 
-
             try {
+
+              /*
+               * Wait for browser image decoding BEFORE
+               * changing the viewer's panorama.
+               *
+               * This is the key protection against a new
+               * panorama entering the animation half-rendered.
+               */
+
+              await preloadPanorama(
+                panorama
+              );
+
+
+              if (
+
+                generation !==
+                animationGeneration
+
+              ) {
+
+                return;
+
+              }
+
 
               /* =================================================
                  ÜHIS1
@@ -4695,10 +4872,47 @@
                 }
 
 
-                viewer.setOption(
-                  'maxFov',
-                  UHIS1_INTRO_MAX_FOV
+                /*
+                 * Give the browser one render opportunity after
+                 * the panorama swap, BEFORE the animation clock
+                 * starts.
+                 *
+                 * This does not alter any animation duration or
+                 * easing. It only prevents the first animation
+                 * frame from racing the texture upload.
+                 */
+
+                await new Promise(
+
+                  (resolve) => {
+
+                    requestAnimationFrame(
+
+                      () => {
+
+                        requestAnimationFrame(
+                          resolve
+                        );
+
+                      }
+
+                    );
+
+                  }
+
                 );
+
+
+                if (
+
+                  generation !==
+                  animationGeneration
+
+                ) {
+
+                  return;
+
+                }
 
 
                 setUhis1IntroCamera();
@@ -4853,6 +5067,47 @@
               }
 
 
+              /*
+               * Two render frames before starting the animation.
+               *
+               * This is intentionally outside the animation timing.
+               * The original animation duration remains exactly the
+               * same once its clock begins.
+               */
+
+              await new Promise(
+
+                (resolve) => {
+
+                  requestAnimationFrame(
+
+                    () => {
+
+                      requestAnimationFrame(
+                        resolve
+                      );
+
+                    }
+
+                  );
+
+                }
+
+              );
+
+
+              if (
+
+                generation !==
+                animationGeneration
+
+              ) {
+
+                return;
+
+              }
+
+
               setIntroCamera(
                 panorama
               );
@@ -4932,6 +5187,22 @@
 
                 isAutoRotationActive =
                   false;
+
+
+                /*
+                 * If the first gate was already passed,
+                 * never restore it after an error.
+                 */
+
+                if (
+                  hasPassedIntroGate
+                ) {
+
+                  blocker.classList.add(
+                    'permanently-unlocked'
+                  );
+
+                }
 
 
                 enableUserInteraction();
