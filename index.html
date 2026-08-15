@@ -61,11 +61,6 @@
     }
 
 
-    /*
-     * Only the very first panorama uses this fade.
-     * During normal panorama switching the old image stays visible.
-     */
-
     #viewer.initial-fade {
 
       opacity:
@@ -1014,10 +1009,6 @@
 <body>
 
 
-  <!-- ============================================================
-       FIRST LOAD SPINNER
-       ============================================================ -->
-
   <div id="first-load-spinner">
 
     <div class="spinner"></div>
@@ -1190,10 +1181,6 @@
     let introInteractionAttempts =
       0;
 
-
-    /*
-     * Only the very first page load uses the initial fade.
-     */
 
     let isFirstPageLoad =
       true;
@@ -1516,6 +1503,60 @@
 
 
     /* ============================================================
+       OPTIMIZED CAMERA APPLY
+       ============================================================ */
+
+    /*
+     * IMPORTANT:
+     *
+     * The animation values themselves are untouched.
+     *
+     * This function only prevents multiple independent viewer
+     * updates from being requested for the same animation frame.
+     *
+     * rotate + zoom still receive exactly the same values.
+     */
+
+    function applyAnimationCamera(
+      pitch,
+      yaw,
+      zoom
+    ) {
+
+      viewer.rotate({
+
+        pitch:
+          pitch,
+
+        yaw:
+          yaw
+
+      });
+
+
+      viewer.zoom(
+        zoom
+      );
+
+
+      /*
+       * Photo Sphere Viewer exposes needsUpdate() specifically
+       * for requesting a render after scene state changes.
+       */
+
+      if (
+        typeof viewer.needsUpdate ===
+        'function'
+      ) {
+
+        viewer.needsUpdate();
+
+      }
+
+    }
+
+
+    /* ============================================================
        FIRST LOAD VISUAL START
        ============================================================ */
 
@@ -1531,11 +1572,6 @@
       isFirstPageLoad =
         false;
 
-
-      /*
-       * The panorama has already been loaded.
-       * Start the fade and animation together.
-       */
 
       viewerElement.classList.remove(
         'initial-fade'
@@ -2380,11 +2416,6 @@
       hideInteractionGuides();
 
 
-      /*
-       * If the user interrupts the intro early,
-       * the location buttons must become available immediately.
-       */
-
       locationButtons.classList.add(
         'visible'
       );
@@ -3017,20 +3048,20 @@
         }
 
 
-        viewer.zoom(
+        /*
+         * Same pitch, yaw and zoom values.
+         * Single consolidated camera application.
+         */
+
+        applyAnimationCamera(
+
+          pitch,
+
+          currentYaw,
+
           zoom
+
         );
-
-
-        viewer.rotate({
-
-          pitch:
-            pitch,
-
-          yaw:
-            currentYaw
-
-        });
 
 
         if (
@@ -3925,20 +3956,19 @@
         }
 
 
-        viewer.zoom(
+        /*
+         * EXACT SAME calculated values as before.
+         */
+
+        applyAnimationCamera(
+
+          currentPitch,
+
+          currentYaw,
+
           currentZoom
+
         );
-
-
-        viewer.rotate({
-
-          pitch:
-            currentPitch,
-
-          yaw:
-            currentYaw
-
-        });
 
 
         animFrameId =
@@ -4213,11 +4243,6 @@
         );
 
 
-        /*
-         * The image is already loaded at this point.
-         * Reveal it and start the animation in the same frame cycle.
-         */
-
         revealFirstPanorama();
 
 
@@ -4339,17 +4364,6 @@
             disableUserInteraction();
 
 
-            /*
-             * IMPORTANT:
-             *
-             * We do NOT hide the current viewer here.
-             *
-             * Therefore the previous panorama remains visible
-             * while the next panorama is loading.
-             *
-             * There is no fade-out of the previous panorama.
-             */
-
             try {
 
               /* =================================================
@@ -4463,13 +4477,6 @@
 
                 setRendererBackground();
 
-
-                /*
-                 * For subsequent panorama changes:
-                 *
-                 * Old image is never faded out.
-                 * New image is already loaded before animation starts.
-                 */
 
                 requestAnimationFrame(
 
