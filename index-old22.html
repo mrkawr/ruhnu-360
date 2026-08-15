@@ -1,0 +1,1721 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>360 S-Curve Fisheye Tour</title>
+
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/core@5/index.css"
+  >
+
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/core@5/index.js"></script>
+
+  <style>
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #f5fafe !important;
+    }
+
+    #viewer {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      background: #f5fafe !important;
+    }
+
+    /*
+     * The viewer is hidden during a panorama switch so the newly
+     * loaded image can never be displayed with an intermediate
+     * zoom, FOV, pitch, yaw, or fisheye value.
+     */
+    #viewer.switching {
+      visibility: hidden;
+    }
+
+    .psv-container,
+    .psv-viewport,
+    .psv-canvas-container,
+    .psv-canvas-container canvas {
+      background: #f5fafe !important;
+    }
+
+    .psv-loader-container,
+    .psv-navbar {
+      display: none !important;
+    }
+
+    #interaction-blocker {
+      position: absolute;
+      inset: 0;
+      z-index: 9999;
+      pointer-events: auto;
+      cursor: grab;
+      touch-action: none;
+    }
+
+    #interaction-blocker.dragging {
+      cursor: grabbing;
+    }
+
+    #interaction-blocker.unlocked {
+      display: none;
+    }
+
+    #location-buttons {
+      position: absolute;
+      bottom: 25px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 11000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 30px;
+      opacity: 0;
+      pointer-events: none;
+      visibility: hidden;
+      transition:
+        opacity 0.35s ease,
+        visibility 0s linear 0.35s;
+    }
+
+    #location-buttons.visible {
+      opacity: 1;
+      pointer-events: auto;
+      visibility: visible;
+      transition:
+        opacity 0.35s ease,
+        visibility 0s linear 0s;
+    }
+
+    .location-button {
+      position: relative;
+      width: 55px;
+      height: 55px;
+      flex: 0 0 55px;
+      padding: 0;
+      border: 1px solid rgba(255, 255, 255, 0.82);
+      border-radius: 50%;
+      background-color: rgba(15, 25, 35, 0.58);
+      background-repeat: no-repeat;
+      background-position: center;
+      background-size: cover;
+      box-shadow:
+        0 2px 8px rgba(0, 0, 0, 0.26),
+        inset 0 1px 1px rgba(255, 255, 255, 0.18);
+      display: block;
+      cursor: pointer;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      overflow: hidden;
+      transition:
+        transform 0.16s cubic-bezier(0.2, 0.8, 0.2, 1),
+        border-color 0.16s ease,
+        box-shadow 0.16s ease,
+        opacity 0.16s ease;
+    }
+
+    .location-button::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, 0.08);
+      pointer-events: none;
+      transition: background 0.16s ease;
+    }
+
+    .location-button:hover::after {
+      background: rgba(0, 0, 0, 0);
+    }
+
+    .location-button.lighthouse {
+      background-image: url("lighthouse.jpeg");
+    }
+
+    .location-button.sunset {
+      background-image: url("sunset.jpeg");
+    }
+
+    .location-button.wooden-house {
+      background-image: url("wooden-house.jpeg");
+    }
+
+    .location-button.church {
+      background-image: url("church.jpeg");
+    }
+
+    .location-button.active {
+      border-color: rgba(255, 255, 255, 1);
+      box-shadow:
+        0 3px 12px rgba(0, 0, 0, 0.32),
+        0 0 0 2px rgba(255, 255, 255, 0.38);
+      transform: scale(1.08);
+    }
+
+    .location-button.active:hover {
+      transform: scale(1.13);
+    }
+
+    .location-button:hover {
+      transform: scale(1.12);
+      border-color: rgba(255, 255, 255, 0.98);
+      box-shadow:
+        0 4px 12px rgba(0, 0, 0, 0.32),
+        inset 0 1px 1px rgba(255, 255, 255, 0.22);
+    }
+
+    .location-button:active {
+      transform: scale(0.94);
+    }
+
+    .location-button:focus-visible {
+      outline: 2px solid rgba(255, 255, 255, 0.95);
+      outline-offset: 2px;
+    }
+
+    #interaction-hints {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 240px;
+      height: 240px;
+      z-index: 1000;
+      transform: translate(-50%, -50%);
+      opacity: 0;
+      pointer-events: none;
+      transition:
+        opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    #interaction-hints.visible {
+      opacity: 0.95;
+    }
+
+    .hint-arrow {
+      position: absolute;
+      width: 0;
+      height: 0;
+      border-style: solid;
+      filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.7));
+    }
+
+    .hint-arrow.left {
+      top: 50%;
+      left: 10px;
+      transform: translateY(-50%);
+      border-width: 9px 15px 9px 0;
+      border-color:
+        transparent
+        #fff
+        transparent
+        transparent;
+      animation:
+        horizontalPulse
+        1.7s
+        infinite
+        cubic-bezier(0.4, 0, 0.6, 1);
+    }
+
+    .hint-arrow.right {
+      top: 50%;
+      right: 10px;
+      transform: translateY(-50%);
+      border-width: 9px 0 9px 15px;
+      border-color:
+        transparent
+        transparent
+        transparent
+        #fff;
+      animation:
+        horizontalPulse
+        1.7s
+        infinite
+        cubic-bezier(0.4, 0, 0.6, 1);
+    }
+
+    .hint-arrow.up {
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-width: 0 9px 15px 9px;
+      border-color:
+        transparent
+        transparent
+        #fff
+        transparent;
+      animation:
+        verticalPulse
+        1.7s
+        infinite
+        cubic-bezier(0.4, 0, 0.6, 1);
+      animation-delay: 0.85s;
+    }
+
+    .hint-arrow.down {
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-width: 15px 9px 0 9px;
+      border-color:
+        #fff
+        transparent
+        transparent
+        transparent;
+      animation:
+        verticalPulse
+        1.7s
+        infinite
+        cubic-bezier(0.4, 0, 0.6, 1);
+      animation-delay: 0.85s;
+    }
+
+    .zoom-hint-center {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 50px;
+      height: 50px;
+      transform: translate(-50%, -50%);
+      border: 2px solid rgba(255, 255, 255, 0.85);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.7));
+      animation:
+        intuitiveZoom
+        2.2s
+        infinite
+        ease-in-out;
+    }
+
+    .zoom-hint-center::after {
+      content: '';
+      position: absolute;
+      right: -8px;
+      bottom: -8px;
+      width: 14px;
+      height: 3px;
+      background: rgba(255, 255, 255, 0.85);
+      transform: rotate(45deg);
+      border-radius: 2px;
+    }
+
+    .zoom-dot-inner {
+      width: 6px;
+      height: 6px;
+      background: #fff;
+      border-radius: 50%;
+      animation:
+        innerDotPulse
+        2.2s
+        infinite
+        ease-in-out;
+    }
+
+    @keyframes horizontalPulse {
+      0%,
+      100% {
+        opacity: 0.25;
+      }
+
+      50% {
+        opacity: 1;
+      }
+    }
+
+    @keyframes verticalPulse {
+      0%,
+      100% {
+        opacity: 0.25;
+      }
+
+      50% {
+        opacity: 1;
+      }
+    }
+
+    @keyframes intuitiveZoom {
+      0%,
+      100% {
+        transform:
+          translate(-50%, -50%)
+          scale(0.9);
+        opacity: 0.3;
+      }
+
+      50% {
+        transform:
+          translate(-50%, -50%)
+          scale(1.2);
+        opacity: 1;
+      }
+    }
+
+    @keyframes innerDotPulse {
+      0%,
+      100% {
+        transform: scale(0.8);
+        opacity: 0.4;
+      }
+
+      50% {
+        transform: scale(1.6);
+        opacity: 1;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="viewer"></div>
+
+  <div id="interaction-blocker"></div>
+
+  <div id="location-buttons">
+
+    <button
+      class="location-button lighthouse"
+      type="button"
+      data-panorama="Tuletorn.jpg"
+      aria-label="Tuletorn"
+      title="Tuletorn"
+    ></button>
+
+    <button
+      class="location-button sunset"
+      type="button"
+      data-panorama="Päikeseloojang.jpg"
+      aria-label="Päikeseloojang"
+      title="Päikeseloojang"
+    ></button>
+
+    <button
+      class="location-button wooden-house"
+      type="button"
+      data-panorama="Puukirik.jpg"
+      aria-label="Puukirik"
+      title="Puukirik"
+    ></button>
+
+    <button
+      class="location-button church"
+      type="button"
+      data-panorama="Kirik.jpg"
+      aria-label="Kirik"
+      title="Kirik"
+    ></button>
+
+  </div>
+
+  <div id="interaction-hints">
+    <div class="hint-arrow left"></div>
+    <div class="hint-arrow right"></div>
+    <div class="hint-arrow up"></div>
+    <div class="hint-arrow down"></div>
+
+    <div class="zoom-hint-center">
+      <div class="zoom-dot-inner"></div>
+    </div>
+  </div>
+
+  <script>
+    const PANORAMAS = {
+      'Tuletorn.jpg': {
+        START_YAW: -60
+      },
+
+      'Päikeseloojang.jpg': {
+        START_YAW: 300
+      },
+
+      'Puukirik.jpg': {
+        START_YAW: 120
+      },
+
+      'Kirik.jpg': {
+        START_YAW: 120
+      }
+    };
+
+    let isIntroActive = true;
+    let isUserInterfered = false;
+    let isAutoRotationActive = false;
+
+    let animFrameId = null;
+    let animationGeneration = 0;
+
+    let currentPanorama = 'Tuletorn.jpg';
+    let currentYaw = 0;
+    let currentSpinSpeed = 0;
+    let lastAnimationTime = 0;
+
+    let introInteractionAttempts = 0;
+    let introPointerDown = false;
+    let introDragDetected = false;
+    let introStartX = 0;
+    let introStartY = 0;
+
+    let isPointerDown = false;
+    let dragHasMoved = false;
+    let pointerStartX = 0;
+    let pointerStartY = 0;
+
+    const DRAG_THRESHOLD = 8;
+
+    const INTRO_UNLOCK_ATTEMPTS = 6;
+
+    const MAX_FOV = 145;
+
+    const INTRO_DURATION = 3500;
+
+    const START_ZOOM = 14;
+    const FINAL_ZOOM = 60;
+
+    const START_PITCH = -Math.PI / 2;
+    const FINAL_PITCH = -0.2;
+
+    const START_FISHEYE = 2;
+    const FINAL_FISHEYE = 0.3;
+
+    const START_SPIN_SPEED = 0.00095;
+    const FINAL_SPIN_SPEED = 0.00012;
+
+    const BACKGROUND_COLOR = 0xf5fafe;
+
+    const blocker =
+      document.getElementById(
+        'interaction-blocker'
+      );
+
+    const hints =
+      document.getElementById(
+        'interaction-hints'
+      );
+
+    const locationButtons =
+      document.getElementById(
+        'location-buttons'
+      );
+
+    const locationButtonElements =
+      Array.from(
+        document.querySelectorAll(
+          '.location-button'
+        )
+      );
+
+    function getPanoramaStartYaw(panorama) {
+      const config = PANORAMAS[panorama];
+
+      if (!config) {
+        return 0;
+      }
+
+      return (
+        (config.START_YAW || 0) *
+        Math.PI /
+        180
+      );
+    }
+
+    const viewer =
+      new PhotoSphereViewer.Viewer({
+        container:
+          document.querySelector(
+            '#viewer'
+          ),
+
+        panorama:
+          'Tuletorn.jpg',
+
+        navbar: false,
+
+        fisheye:
+          START_FISHEYE,
+
+        defaultZoomLvl:
+          START_ZOOM,
+
+        defaultPitch:
+          START_PITCH,
+
+        defaultYaw:
+          getPanoramaStartYaw(
+            'Tuletorn.jpg'
+          ),
+
+        minFov: 30,
+
+        maxFov:
+          MAX_FOV,
+
+        mousemove: false,
+
+        mousewheel: false,
+
+        touchmove: false,
+
+        moveInertia: false,
+
+        defaultTransition: {
+          speed: 0,
+          rotation: false,
+          effect: 'black'
+        }
+      });
+
+    function setRendererBackground() {
+      try {
+        if (
+          viewer.renderer &&
+          viewer.renderer.renderer &&
+          typeof
+            viewer.renderer.renderer.setClearColor ===
+            'function'
+        ) {
+          viewer.renderer.renderer.setClearColor(
+            BACKGROUND_COLOR,
+            1
+          );
+        }
+      } catch (error) {
+        // Ignore renderer-specific background errors.
+      }
+    }
+
+    setRendererBackground();
+
+    function smootherStep(t) {
+      return (
+        6 * Math.pow(t, 5)
+      ) -
+      (
+        15 * Math.pow(t, 4)
+      ) +
+      (
+        10 * Math.pow(t, 3)
+      );
+    }
+
+    function easeOutCubic(t) {
+      return (
+        1 -
+        Math.pow(
+          1 - t,
+          3
+        )
+      );
+    }
+
+    function lerp(a, b, t) {
+      return (
+        a +
+        (b - a) * t
+      );
+    }
+
+    function getIntroPitch(progress) {
+      return lerp(
+        START_PITCH,
+        FINAL_PITCH,
+        smootherStep(progress)
+      );
+    }
+
+    function getIntroZoom(progress) {
+      return lerp(
+        START_ZOOM,
+        FINAL_ZOOM,
+        smootherStep(progress)
+      );
+    }
+
+    function getIntroFisheye(progress) {
+      return lerp(
+        START_FISHEYE,
+        FINAL_FISHEYE,
+        smootherStep(progress)
+      );
+    }
+
+    function getRotationSpeed(progress) {
+      return lerp(
+        START_SPIN_SPEED,
+        FINAL_SPIN_SPEED,
+        easeOutCubic(progress)
+      );
+    }
+
+    function setIntroCamera(panorama) {
+      const startYaw =
+        getPanoramaStartYaw(
+          panorama
+        );
+
+      currentPanorama =
+        panorama;
+
+      currentYaw =
+        startYaw;
+
+      currentSpinSpeed =
+        START_SPIN_SPEED;
+
+      viewer.setOption(
+        'fisheye',
+        START_FISHEYE
+      );
+
+      viewer.zoom(
+        START_ZOOM
+      );
+
+      viewer.rotate({
+        yaw:
+          startYaw,
+
+        pitch:
+          START_PITCH
+      });
+    }
+
+    function enableUserInteraction() {
+      viewer.setOptions({
+        mousemove: true,
+        mousewheel: true,
+        touchmove: true
+      });
+
+      blocker.classList.add(
+        'unlocked'
+      );
+    }
+
+    function disableUserInteraction() {
+      viewer.setOptions({
+        mousemove: false,
+        mousewheel: false,
+        touchmove: false
+      });
+
+      blocker.classList.remove(
+        'unlocked'
+      );
+    }
+
+    function hideFinishedUI() {
+      hints.classList.remove(
+        'visible'
+      );
+
+      locationButtons.classList.remove(
+        'visible'
+      );
+    }
+
+    function showFinishedUI() {
+      locationButtons.classList.add(
+        'visible'
+      );
+
+      hints.classList.add(
+        'visible'
+      );
+    }
+
+    function hideInteractionGuides() {
+      hints.classList.remove(
+        'visible'
+      );
+    }
+
+    function updateActiveButton(panorama) {
+      locationButtonElements.forEach(
+        (button) => {
+          button.classList.toggle(
+            'active',
+            button.dataset.panorama ===
+              panorama
+          );
+        }
+      );
+    }
+
+    function stopAutomaticRotation() {
+      if (isIntroActive) {
+        return;
+      }
+
+      if (!isAutoRotationActive) {
+        return;
+      }
+
+      isAutoRotationActive = false;
+      isUserInterfered = true;
+
+      hideInteractionGuides();
+    }
+
+    function handlePostIntroPointerDown(event) {
+      if (isIntroActive) {
+        return;
+      }
+
+      isPointerDown = true;
+      dragHasMoved = false;
+
+      pointerStartX =
+        event.clientX;
+
+      pointerStartY =
+        event.clientY;
+    }
+
+    function handlePostIntroPointerMove(event) {
+      if (
+        isIntroActive ||
+        !isPointerDown ||
+        dragHasMoved
+      ) {
+        return;
+      }
+
+      const dx =
+        event.clientX -
+        pointerStartX;
+
+      const dy =
+        event.clientY -
+        pointerStartY;
+
+      const distance =
+        Math.sqrt(
+          dx * dx +
+          dy * dy
+        );
+
+      if (
+        distance >=
+        DRAG_THRESHOLD
+      ) {
+        dragHasMoved = true;
+        stopAutomaticRotation();
+      }
+    }
+
+    function handlePostIntroPointerUp() {
+      if (isIntroActive) {
+        return;
+      }
+
+      isPointerDown = false;
+      dragHasMoved = false;
+    }
+
+    viewer.container.addEventListener(
+      'pointerdown',
+      handlePostIntroPointerDown,
+      {
+        capture: true,
+        passive: true
+      }
+    );
+
+    viewer.container.addEventListener(
+      'pointermove',
+      handlePostIntroPointerMove,
+      {
+        capture: true,
+        passive: true
+      }
+    );
+
+    viewer.container.addEventListener(
+      'pointerup',
+      handlePostIntroPointerUp,
+      {
+        capture: true,
+        passive: true
+      }
+    );
+
+    viewer.container.addEventListener(
+      'pointercancel',
+      handlePostIntroPointerUp,
+      {
+        capture: true,
+        passive: true
+      }
+    );
+
+    viewer.container.addEventListener(
+      'touchstart',
+      (event) => {
+        if (isIntroActive) {
+          return;
+        }
+
+        const touch =
+          event.touches[0];
+
+        if (!touch) {
+          return;
+        }
+
+        isPointerDown = true;
+        dragHasMoved = false;
+
+        pointerStartX =
+          touch.clientX;
+
+        pointerStartY =
+          touch.clientY;
+      },
+      {
+        capture: true,
+        passive: true
+      }
+    );
+
+    viewer.container.addEventListener(
+      'touchmove',
+      (event) => {
+        if (
+          isIntroActive ||
+          !isPointerDown ||
+          dragHasMoved
+        ) {
+          return;
+        }
+
+        const touch =
+          event.touches[0];
+
+        if (!touch) {
+          return;
+        }
+
+        const dx =
+          touch.clientX -
+          pointerStartX;
+
+        const dy =
+          touch.clientY -
+          pointerStartY;
+
+        const distance =
+          Math.sqrt(
+            dx * dx +
+            dy * dy
+          );
+
+        if (
+          distance >=
+          DRAG_THRESHOLD
+        ) {
+          dragHasMoved = true;
+          stopAutomaticRotation();
+        }
+      },
+      {
+        capture: true,
+        passive: true
+      }
+    );
+
+    viewer.container.addEventListener(
+      'touchend',
+      handlePostIntroPointerUp,
+      {
+        capture: true,
+        passive: true
+      }
+    );
+
+    function stopIntroAndUnlock() {
+      if (!isIntroActive) {
+        return;
+      }
+
+      isIntroActive = false;
+      isUserInterfered = true;
+      isAutoRotationActive = false;
+
+      animationGeneration++;
+
+      if (animFrameId !== null) {
+        cancelAnimationFrame(
+          animFrameId
+        );
+
+        animFrameId = null;
+      }
+
+      enableUserInteraction();
+      hideInteractionGuides();
+
+      viewer.container.classList.remove(
+        'switching'
+      );
+    }
+
+    function handleIntroPointerDown(event) {
+      if (!isIntroActive) {
+        return;
+      }
+
+      introPointerDown = true;
+      introDragDetected = false;
+
+      introStartX =
+        event.clientX;
+
+      introStartY =
+        event.clientY;
+
+      blocker.classList.add(
+        'dragging'
+      );
+    }
+
+    function handleIntroPointerMove(event) {
+      if (
+        !isIntroActive ||
+        !introPointerDown ||
+        introDragDetected
+      ) {
+        return;
+      }
+
+      const dx =
+        event.clientX -
+        introStartX;
+
+      const dy =
+        event.clientY -
+        introStartY;
+
+      const distance =
+        Math.sqrt(
+          dx * dx +
+          dy * dy
+        );
+
+      if (
+        distance <
+        DRAG_THRESHOLD
+      ) {
+        return;
+      }
+
+      introDragDetected = true;
+      introInteractionAttempts++;
+
+      if (
+        introInteractionAttempts <
+        INTRO_UNLOCK_ATTEMPTS
+      ) {
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
+
+      stopIntroAndUnlock();
+    }
+
+    function handleIntroPointerUp() {
+      if (!isIntroActive) {
+        return;
+      }
+
+      introPointerDown = false;
+      introDragDetected = false;
+
+      blocker.classList.remove(
+        'dragging'
+      );
+    }
+
+    blocker.addEventListener(
+      'pointerdown',
+      handleIntroPointerDown,
+      {
+        capture: true,
+        passive: false
+      }
+    );
+
+    blocker.addEventListener(
+      'pointermove',
+      handleIntroPointerMove,
+      {
+        capture: true,
+        passive: false
+      }
+    );
+
+    blocker.addEventListener(
+      'pointerup',
+      handleIntroPointerUp,
+      {
+        capture: true,
+        passive: false
+      }
+    );
+
+    blocker.addEventListener(
+      'pointercancel',
+      handleIntroPointerUp,
+      {
+        capture: true,
+        passive: false
+      }
+    );
+
+    blocker.addEventListener(
+      'touchstart',
+      (event) => {
+        if (!isIntroActive) {
+          return;
+        }
+
+        const touch =
+          event.touches[0];
+
+        if (!touch) {
+          return;
+        }
+
+        introPointerDown = true;
+        introDragDetected = false;
+
+        introStartX =
+          touch.clientX;
+
+        introStartY =
+          touch.clientY;
+      },
+      {
+        capture: true,
+        passive: false
+      }
+    );
+
+    blocker.addEventListener(
+      'touchmove',
+      (event) => {
+        if (
+          !isIntroActive ||
+          !introPointerDown ||
+          introDragDetected
+        ) {
+          return;
+        }
+
+        const touch =
+          event.touches[0];
+
+        if (!touch) {
+          return;
+        }
+
+        const dx =
+          touch.clientX -
+          introStartX;
+
+        const dy =
+          touch.clientY -
+          introStartY;
+
+        const distance =
+          Math.sqrt(
+            dx * dx +
+            dy * dy
+          );
+
+        if (
+          distance <
+          DRAG_THRESHOLD
+        ) {
+          return;
+        }
+
+        introDragDetected = true;
+        introInteractionAttempts++;
+
+        if (
+          introInteractionAttempts <
+          INTRO_UNLOCK_ATTEMPTS
+        ) {
+          event.preventDefault();
+          event.stopPropagation();
+          return;
+        }
+
+        stopIntroAndUnlock();
+      },
+      {
+        capture: true,
+        passive: false
+      }
+    );
+
+    blocker.addEventListener(
+      'touchend',
+      handleIntroPointerUp,
+      {
+        capture: true,
+        passive: false
+      }
+    );
+
+    function runIntroAnimation(
+      panorama,
+      generation
+    ) {
+      isUserInterfered = false;
+      isAutoRotationActive = false;
+
+      disableUserInteraction();
+      hideFinishedUI();
+      updateActiveButton(
+        panorama
+      );
+
+      setIntroCamera(
+        panorama
+      );
+
+      setRendererBackground();
+
+      const startTime =
+        performance.now();
+
+      let lastTime =
+        startTime;
+
+      let lastFisheye =
+        START_FISHEYE;
+
+      function animate(
+        currentTime
+      ) {
+        if (
+          generation !==
+          animationGeneration
+        ) {
+          return;
+        }
+
+        if (!isIntroActive) {
+          return;
+        }
+
+        const deltaTime =
+          Math.min(
+            currentTime -
+              lastTime,
+            50
+          );
+
+        lastTime =
+          currentTime;
+
+        const elapsed =
+          currentTime -
+          startTime;
+
+        const progress =
+          Math.min(
+            elapsed /
+              INTRO_DURATION,
+            1
+          );
+
+        const pitch =
+          getIntroPitch(
+            progress
+          );
+
+        const zoom =
+          getIntroZoom(
+            progress
+          );
+
+        const fisheye =
+          getIntroFisheye(
+            progress
+          );
+
+        currentSpinSpeed =
+          getRotationSpeed(
+            progress
+          );
+
+        currentYaw +=
+          currentSpinSpeed *
+          deltaTime;
+
+        if (
+          Math.abs(
+            fisheye -
+              lastFisheye
+          ) > 0.0001
+        ) {
+          viewer.setOption(
+            'fisheye',
+            fisheye
+          );
+
+          lastFisheye =
+            fisheye;
+        }
+
+        viewer.zoom(
+          zoom
+        );
+
+        viewer.rotate({
+          pitch,
+          yaw:
+            currentYaw
+        });
+
+        if (
+          progress >= 1
+        ) {
+          viewer.setOption(
+            'fisheye',
+            FINAL_FISHEYE
+          );
+
+          viewer.zoom(
+            FINAL_ZOOM
+          );
+
+          viewer.rotate({
+            pitch:
+              FINAL_PITCH,
+
+            yaw:
+              currentYaw
+          });
+
+          currentSpinSpeed =
+            FINAL_SPIN_SPEED;
+
+          lastAnimationTime =
+            currentTime;
+
+          enableUserInteraction();
+
+          isIntroActive =
+            false;
+
+          isAutoRotationActive =
+            true;
+
+          isUserInterfered =
+            false;
+
+          updateActiveButton(
+            panorama
+          );
+
+          showFinishedUI();
+
+          viewer.container.classList.remove(
+            'switching'
+          );
+
+          animFrameId =
+            requestAnimationFrame(
+              continueRotation
+            );
+
+          return;
+        }
+
+        animFrameId =
+          requestAnimationFrame(
+            animate
+          );
+      }
+
+      animFrameId =
+        requestAnimationFrame(
+          animate
+        );
+    }
+
+    function continueRotation(
+      currentTime
+    ) {
+      if (isIntroActive) {
+        return;
+      }
+
+      const deltaTime =
+        Math.min(
+          currentTime -
+            lastAnimationTime,
+          50
+        );
+
+      lastAnimationTime =
+        currentTime;
+
+      if (
+        isAutoRotationActive &&
+        !isUserInterfered
+      ) {
+        currentYaw +=
+          currentSpinSpeed *
+          deltaTime;
+
+        const currentPosition =
+          viewer.getPosition();
+
+        viewer.rotate({
+          pitch:
+            currentPosition.pitch,
+
+          yaw:
+            currentYaw
+        });
+      }
+
+      animFrameId =
+        requestAnimationFrame(
+          continueRotation
+        );
+    }
+
+    viewer.addEventListener(
+      'ready',
+      () => {
+        animationGeneration++;
+
+        const generation =
+          animationGeneration;
+
+        viewer.container.classList.add(
+          'switching'
+        );
+
+        setIntroCamera(
+          'Tuletorn.jpg'
+        );
+
+        requestAnimationFrame(
+          () => {
+            if (
+              generation !==
+              animationGeneration
+            ) {
+              return;
+            }
+
+            runIntroAnimation(
+              'Tuletorn.jpg',
+              generation
+            );
+
+            requestAnimationFrame(
+              () => {
+                if (
+                  generation ===
+                  animationGeneration
+                ) {
+                  viewer.container.classList.remove(
+                    'switching'
+                  );
+                }
+              }
+            );
+          }
+        );
+      },
+      {
+        once: true
+      }
+    );
+
+    viewer.addEventListener(
+      'zoom-updated',
+      (event) => {
+        if (isIntroActive) {
+          return;
+        }
+
+        const currentZoom =
+          event.zoomLevel;
+
+        if (
+          currentZoom <
+          FINAL_ZOOM
+        ) {
+          const dynamicFisheye =
+            FINAL_FISHEYE +
+            (
+              (
+                FINAL_ZOOM -
+                currentZoom
+              ) /
+              FINAL_ZOOM
+            ) *
+            1.5;
+
+          viewer.setOption(
+            'fisheye',
+            Math.min(
+              dynamicFisheye,
+              START_FISHEYE
+            )
+          );
+        } else {
+          viewer.setOption(
+            'fisheye',
+            FINAL_FISHEYE
+          );
+        }
+      }
+    );
+
+    locationButtonElements.forEach(
+      (button) => {
+        button.addEventListener(
+          'click',
+          async (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+
+            const panorama =
+              button.dataset.panorama;
+
+            if (!panorama) {
+              return;
+            }
+
+            if (
+              panorama ===
+                currentPanorama &&
+              !isIntroActive
+            ) {
+              return;
+            }
+
+            animationGeneration++;
+
+            const generation =
+              animationGeneration;
+
+            if (
+              animFrameId !== null
+            ) {
+              cancelAnimationFrame(
+                animFrameId
+              );
+
+              animFrameId = null;
+            }
+
+            isAutoRotationActive =
+              false;
+
+            isUserInterfered =
+              true;
+
+            isIntroActive =
+              true;
+
+            hideFinishedUI();
+            disableUserInteraction();
+
+            /*
+             * Hide the old panorama before loading the new one.
+             * This prevents any intermediate camera state from
+             * ever becoming visible.
+             */
+            viewer.container.classList.add(
+              'switching'
+            );
+
+            try {
+              const startYaw =
+                getPanoramaStartYaw(
+                  panorama
+                );
+
+              const loaded =
+                await viewer.setPanorama(
+                  panorama,
+                  {
+                    position: {
+                      yaw:
+                        startYaw,
+
+                      pitch:
+                        START_PITCH
+                    },
+
+                    zoom:
+                      START_ZOOM,
+
+                    transition:
+                      false,
+
+                    showLoader:
+                      false
+                  }
+                );
+
+              if (
+                generation !==
+                animationGeneration
+              ) {
+                return;
+              }
+
+              if (!loaded) {
+                return;
+              }
+
+              /*
+               * Explicitly force every camera parameter to the
+               * exact animation starting state after the panorama
+               * has loaded.
+               */
+              setIntroCamera(
+                panorama
+              );
+
+              setRendererBackground();
+
+              /*
+               * Wait one browser frame after applying the camera
+               * state. The viewer stays hidden during this frame.
+               */
+              requestAnimationFrame(
+                () => {
+                  if (
+                    generation !==
+                    animationGeneration
+                  ) {
+                    return;
+                  }
+
+                  if (!isIntroActive) {
+                    return;
+                  }
+
+                  /*
+                   * The panorama is now guaranteed to be at:
+                   *
+                   * fisheye = START_FISHEYE
+                   * zoom    = START_ZOOM
+                   * pitch   = START_PITCH
+                   * yaw     = panorama start yaw
+                   *
+                   * Reveal it only now, immediately before the
+                   * animation starts.
+                   */
+                  viewer.container.classList.remove(
+                    'switching'
+                  );
+
+                  runIntroAnimation(
+                    panorama,
+                    generation
+                  );
+                }
+              );
+            }
+
+            catch (error) {
+              console.error(
+                'Unable to load panorama:',
+                error
+              );
+
+              if (
+                generation ===
+                animationGeneration
+              ) {
+                viewer.container.classList.remove(
+                  'switching'
+                );
+
+                isIntroActive =
+                  false;
+
+                isUserInterfered =
+                  false;
+
+                isAutoRotationActive =
+                  false;
+
+                enableUserInteraction();
+                hideInteractionGuides();
+              }
+            }
+          }
+        );
+      }
+    );
+
+    locationButtons.addEventListener(
+      'pointerdown',
+      (event) => {
+        event.stopPropagation();
+      },
+      {
+        capture: true,
+        passive: true
+      }
+    );
+
+    locationButtons.addEventListener(
+      'pointermove',
+      (event) => {
+        event.stopPropagation();
+      },
+      {
+        capture: true,
+        passive: true
+      }
+    );
+
+    locationButtons.addEventListener(
+      'pointerup',
+      (event) => {
+        event.stopPropagation();
+      },
+      {
+        capture: true,
+        passive: true
+      }
+    );
+  </script>
+
+</body>
+
+</html>

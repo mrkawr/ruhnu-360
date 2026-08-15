@@ -1,0 +1,2206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>360 S-Curve Fisheye Tour</title>
+
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/core@5/index.css"
+  >
+
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/core@5/index.js"></script>
+
+  <style>
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #f5fafe !important;
+    }
+
+    #viewer {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      background: #f5fafe !important;
+    }
+
+    /*
+     * Force the Photo Sphere Viewer / canvas layers to use
+     * the same background color.
+     */
+    .psv-container,
+    .psv-viewport,
+    .psv-canvas-container,
+    .psv-canvas-container canvas {
+      background: #f5fafe !important;
+    }
+
+    .psv-loader-container,
+    .psv-navbar {
+      display: none !important;
+    }
+
+
+    /* ============================================================
+       INTRO BLOCKER
+       ============================================================ */
+
+    #interaction-blocker {
+      position: absolute;
+      inset: 0;
+      z-index: 9999;
+      pointer-events: auto;
+      cursor: grab;
+    }
+
+    #interaction-blocker.dragging {
+      cursor: grabbing;
+    }
+
+    #interaction-blocker.unlocked {
+      display: none;
+    }
+
+
+    /* ============================================================
+       INTERACTION HINTS
+       ============================================================ */
+
+    #interaction-hints {
+      position: absolute;
+
+      top: 50%;
+      left: 50%;
+
+      width: 240px;
+      height: 240px;
+
+      z-index: 1000;
+
+      transform:
+        translate(-50%, -50%);
+
+      opacity: 0;
+
+      pointer-events: none;
+
+      transition:
+        opacity
+        0.8s
+        cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    #interaction-hints.visible {
+      opacity: 0.95;
+    }
+
+
+    .hint-arrow {
+      position: absolute;
+
+      width: 0;
+      height: 0;
+
+      border-style: solid;
+
+      filter:
+        drop-shadow(
+          0 2px 8px rgba(0, 0, 0, 0.7)
+        );
+    }
+
+
+    .hint-arrow.left {
+      top: 50%;
+      left: 10px;
+
+      transform:
+        translateY(-50%);
+
+      border-width:
+        9px 15px 9px 0;
+
+      border-color:
+        transparent
+        #fff
+        transparent
+        transparent;
+
+      animation:
+        pulseLeft
+        2.1s
+        infinite
+        cubic-bezier(0.4, 0, 0.6, 1);
+    }
+
+
+    .hint-arrow.right {
+      top: 50%;
+      right: 10px;
+
+      transform:
+        translateY(-50%);
+
+      border-width:
+        9px 0 9px 15px;
+
+      border-color:
+        transparent
+        transparent
+        transparent
+        #fff;
+
+      animation:
+        pulseRight
+        2.1s
+        infinite
+        cubic-bezier(0.4, 0, 0.6, 1);
+
+      animation-delay:
+        0.5s;
+    }
+
+
+    .hint-arrow.up {
+      top: 10px;
+      left: 50%;
+
+      transform:
+        translateX(-50%);
+
+      border-width:
+        0 9px 15px 9px;
+
+      border-color:
+        transparent
+        transparent
+        #fff
+        transparent;
+
+      animation:
+        pulseUp
+        2.4s
+        infinite
+        cubic-bezier(0.4, 0, 0.6, 1);
+
+      animation-delay:
+        1s;
+    }
+
+
+    .hint-arrow.down {
+      bottom: 10px;
+      left: 50%;
+
+      transform:
+        translateX(-50%);
+
+      border-width:
+        15px 9px 0 9px;
+
+      border-color:
+        #fff
+        transparent
+        transparent
+        transparent;
+
+      animation:
+        pulseDown
+        2.4s
+        infinite
+        cubic-bezier(0.4, 0, 0.6, 1);
+
+      animation-delay:
+        1.5s;
+    }
+
+
+    .zoom-hint-center {
+      position: absolute;
+
+      top: 50%;
+      left: 50%;
+
+      width: 50px;
+      height: 50px;
+
+      transform:
+        translate(-50%, -50%);
+
+      border:
+        2px solid rgba(255, 255, 255, 0.85);
+
+      border-radius: 50%;
+
+      display: flex;
+
+      align-items: center;
+      justify-content: center;
+
+      filter:
+        drop-shadow(
+          0 2px 8px rgba(0, 0, 0, 0.7)
+        );
+
+      animation:
+        intuitiveZoom
+        2.8s
+        infinite
+        ease-in-out;
+    }
+
+
+    .zoom-hint-center::after {
+      content: '';
+
+      position: absolute;
+
+      right: -8px;
+      bottom: -8px;
+
+      width: 14px;
+      height: 3px;
+
+      background:
+        rgba(255, 255, 255, 0.85);
+
+      transform:
+        rotate(45deg);
+
+      border-radius: 2px;
+    }
+
+
+    .zoom-dot-inner {
+      width: 6px;
+      height: 6px;
+
+      background: #fff;
+
+      border-radius: 50%;
+
+      animation:
+        innerDotPulse
+        2.8s
+        infinite
+        ease-in-out;
+    }
+
+
+    /* ============================================================
+       KEYFRAMES
+       ============================================================ */
+
+    @keyframes pulseLeft {
+      0%, 100% {
+        transform:
+          translate(0, -50%)
+          scale(1);
+
+        opacity: 0.25;
+      }
+
+      50% {
+        transform:
+          translate(-24px, -50%)
+          scale(1.25);
+
+        opacity: 1;
+      }
+    }
+
+
+    @keyframes pulseRight {
+      0%, 100% {
+        transform:
+          translate(0, -50%)
+          scale(1);
+
+        opacity: 0.25;
+      }
+
+      50% {
+        transform:
+          translate(24px, -50%)
+          scale(1.25);
+
+        opacity: 1;
+      }
+    }
+
+
+    @keyframes pulseUp {
+      0%, 100% {
+        transform:
+          translate(-50%, 0)
+          scale(1);
+
+        opacity: 0.25;
+      }
+
+      50% {
+        transform:
+          translate(-50%, -24px)
+          scale(1.25);
+
+        opacity: 1;
+      }
+    }
+
+
+    @keyframes pulseDown {
+      0%, 100% {
+        transform:
+          translate(-50%, 0)
+          scale(1);
+
+        opacity: 0.25;
+      }
+
+      50% {
+        transform:
+          translate(-50%, 24px)
+          scale(1.25);
+
+        opacity: 1;
+      }
+    }
+
+
+    @keyframes intuitiveZoom {
+      0%, 100% {
+        transform:
+          translate(-50%, -50%)
+          scale(0.9);
+
+        opacity: 0.3;
+      }
+
+      50% {
+        transform:
+          translate(-50%, -50%)
+          scale(1.2);
+
+        opacity: 1;
+      }
+    }
+
+
+    @keyframes innerDotPulse {
+      0%, 100% {
+        transform: scale(0.8);
+
+        opacity: 0.4;
+      }
+
+      50% {
+        transform: scale(1.6);
+
+        opacity: 1;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="viewer"></div>
+
+  <div id="interaction-blocker"></div>
+
+
+  <!-- ==========================================================
+       USER UI
+       ========================================================== -->
+
+  <div id="interaction-hints">
+
+    <div class="hint-arrow left"></div>
+
+    <div class="hint-arrow right"></div>
+
+    <div class="hint-arrow up"></div>
+
+    <div class="hint-arrow down"></div>
+
+    <div class="zoom-hint-center">
+      <div class="zoom-dot-inner"></div>
+    </div>
+
+  </div>
+
+
+  <script>
+
+    /* ============================================================
+       STATE
+       ============================================================ */
+
+    let isIntroActive =
+      true;
+
+    let isUserInterfered =
+      false;
+
+    let isAutoRotationActive =
+      false;
+
+    let animFrameId =
+      null;
+
+    let introInteractionAttempts =
+      0;
+
+
+    /*
+     * Actual click-and-drag tracking.
+     */
+    let isPointerDown =
+      false;
+
+    let dragHasMoved =
+      false;
+
+    let pointerStartX =
+      0;
+
+    let pointerStartY =
+      0;
+
+
+    const DRAG_THRESHOLD =
+      8;
+
+
+    /* ============================================================
+       SETTINGS
+       ============================================================ */
+
+    const INTRO_UNLOCK_ATTEMPTS =
+      6;
+
+    const INTRO_MAX_FOV =
+      170;
+
+    const USER_MAX_FOV =
+      130;
+
+
+    /*
+     * Actual background color.
+     */
+    const BACKGROUND_COLOR =
+      0xf5fafe;
+
+
+    /* ============================================================
+       ELEMENTS
+       ============================================================ */
+
+    const blocker =
+      document.getElementById(
+        'interaction-blocker'
+      );
+
+    const hints =
+      document.getElementById(
+        'interaction-hints'
+      );
+
+
+    /* ============================================================
+       VIEWER
+       ============================================================ */
+
+    const viewer =
+      new PhotoSphereViewer.Viewer({
+
+        container:
+          document.querySelector(
+            '#viewer'
+          ),
+
+        panorama:
+          'Ühis1.jpg',
+
+        navbar:
+          false,
+
+        fisheye:
+          2,
+
+        defaultZoomLvl:
+          0,
+
+        defaultPitch:
+          -Math.PI / 2,
+
+        defaultYaw:
+          0,
+
+        minFov:
+          30,
+
+        /*
+         * Full FOV range during intro.
+         */
+        maxFov:
+          INTRO_MAX_FOV,
+
+        mousemove:
+          false,
+
+        mousedown:
+          false,
+
+        touchmove:
+          false,
+
+        mousewheel:
+          false
+      });
+
+
+    /* ============================================================
+       FORCE THREE.JS BACKGROUND
+       ============================================================ */
+
+    /*
+     * Photo Sphere Viewer uses Three.js for rendering.
+     * Set the renderer clear color when the renderer is available.
+     */
+    function setRendererBackground() {
+
+      try {
+
+        if (
+          viewer.renderer &&
+          viewer.renderer.renderer &&
+          typeof
+            viewer.renderer.renderer.setClearColor ===
+            'function'
+        ) {
+
+          viewer.renderer.renderer.setClearColor(
+            BACKGROUND_COLOR,
+            1
+          );
+        }
+
+      } catch (error) {
+        /*
+         * CSS backgrounds above still remain active.
+         */
+      }
+    }
+
+
+    /*
+     * Try immediately.
+     */
+    setRendererBackground();
+
+
+    /*
+     * Try again once the panorama has loaded.
+     */
+    viewer.addEventListener(
+      'panorama-loaded',
+      setRendererBackground,
+      {
+        once: true
+      }
+    );
+
+
+    /* ============================================================
+       EASING
+       ============================================================ */
+
+    function easeInOutQuint(t) {
+
+      return t < 0.5
+
+        ? 16 *
+          t *
+          t *
+          t *
+          t *
+          t
+
+        : 1 -
+          Math.pow(
+            -2 * t + 2,
+            5
+          ) / 2;
+    }
+
+
+    function easeOutCubic(t) {
+
+      return 1 -
+        Math.pow(
+          1 - t,
+          3
+        );
+    }
+
+
+    function easeInOutSine(t) {
+
+      return -(
+        Math.cos(
+          Math.PI * t
+        ) - 1
+      ) / 2;
+    }
+
+
+    function easeInOutCubic(t) {
+
+      return t < 0.5
+
+        ? 4 *
+          t *
+          t *
+          t
+
+        : 1 -
+          Math.pow(
+            -2 * t + 2,
+            3
+          ) / 2;
+    }
+
+
+    function easeOutSeptic(t) {
+
+      return 1 -
+        Math.pow(
+          1 - t,
+          7
+        );
+    }
+
+
+    /* ============================================================
+       ENABLE USER INTERACTION
+       ============================================================ */
+
+    function enableUserInteraction() {
+
+      viewer.setOption(
+        'mousemove',
+        true
+      );
+
+      viewer.setOption(
+        'mousedown',
+        true
+      );
+
+      viewer.setOption(
+        'touchmove',
+        true
+      );
+
+      viewer.setOption(
+        'mousewheel',
+        true
+      );
+
+      blocker.classList.add(
+        'unlocked'
+      );
+    }
+
+
+    /* ============================================================
+       STOP AUTOMATIC ROTATION
+       ============================================================ */
+
+    function stopAutomaticRotation() {
+
+      if (isIntroActive) {
+        return;
+      }
+
+
+      if (!isAutoRotationActive) {
+        return;
+      }
+
+
+      isAutoRotationActive =
+        false;
+
+      isUserInterfered =
+        true;
+
+
+      /*
+       * UI disappears only after a genuine drag.
+       */
+      hints.classList.remove(
+        'visible'
+      );
+    }
+
+
+    /* ============================================================
+       POST-INTRO ACTUAL DRAG DETECTION
+       ============================================================ */
+
+    function handlePostIntroPointerDown(
+      event
+    ) {
+
+      if (isIntroActive) {
+        return;
+      }
+
+
+      isPointerDown =
+        true;
+
+      dragHasMoved =
+        false;
+
+
+      pointerStartX =
+        event.clientX;
+
+      pointerStartY =
+        event.clientY;
+    }
+
+
+    function handlePostIntroPointerMove(
+      event
+    ) {
+
+      if (isIntroActive) {
+        return;
+      }
+
+
+      if (!isPointerDown) {
+        return;
+      }
+
+
+      if (dragHasMoved) {
+        return;
+      }
+
+
+      const dx =
+        event.clientX -
+        pointerStartX;
+
+      const dy =
+        event.clientY -
+        pointerStartY;
+
+
+      const distance =
+        Math.sqrt(
+          dx * dx +
+          dy * dy
+        );
+
+
+      /*
+       * A mouse moving without a pressed button
+       * does not reach this point.
+       */
+      if (
+        distance >=
+        DRAG_THRESHOLD
+      ) {
+
+        dragHasMoved =
+          true;
+
+        stopAutomaticRotation();
+      }
+    }
+
+
+    function handlePostIntroPointerUp() {
+
+      if (isIntroActive) {
+        return;
+      }
+
+
+      isPointerDown =
+        false;
+
+      dragHasMoved =
+        false;
+    }
+
+
+    /*
+     * Pointer events.
+     */
+    viewer.container.addEventListener(
+      'pointerdown',
+      handlePostIntroPointerDown,
+      {
+        capture: true,
+        passive: true
+      }
+    );
+
+
+    viewer.container.addEventListener(
+      'pointermove',
+      handlePostIntroPointerMove,
+      {
+        capture: true,
+        passive: true
+      }
+    );
+
+
+    viewer.container.addEventListener(
+      'pointerup',
+      handlePostIntroPointerUp,
+      {
+        capture: true,
+        passive: true
+      }
+    );
+
+
+    viewer.container.addEventListener(
+      'pointercancel',
+      handlePostIntroPointerUp,
+      {
+        capture: true,
+        passive: true
+      }
+    );
+
+
+    /*
+     * Touch fallback.
+     */
+    viewer.container.addEventListener(
+      'touchstart',
+      (event) => {
+
+        if (isIntroActive) {
+          return;
+        }
+
+
+        const touch =
+          event.touches[0];
+
+
+        if (!touch) {
+          return;
+        }
+
+
+        isPointerDown =
+          true;
+
+        dragHasMoved =
+          false;
+
+        pointerStartX =
+          touch.clientX;
+
+        pointerStartY =
+          touch.clientY;
+      },
+      {
+        capture: true,
+        passive: true
+      }
+    );
+
+
+    viewer.container.addEventListener(
+      'touchmove',
+      (event) => {
+
+        if (isIntroActive) {
+          return;
+        }
+
+
+        if (!isPointerDown) {
+          return;
+        }
+
+
+        if (dragHasMoved) {
+          return;
+        }
+
+
+        const touch =
+          event.touches[0];
+
+
+        if (!touch) {
+          return;
+        }
+
+
+        const dx =
+          touch.clientX -
+          pointerStartX;
+
+        const dy =
+          touch.clientY -
+          pointerStartY;
+
+
+        const distance =
+          Math.sqrt(
+            dx * dx +
+            dy * dy
+          );
+
+
+        if (
+          distance >=
+          DRAG_THRESHOLD
+        ) {
+
+          dragHasMoved =
+            true;
+
+          stopAutomaticRotation();
+        }
+      },
+      {
+        capture: true,
+        passive: true
+      }
+    );
+
+
+    viewer.container.addEventListener(
+      'touchend',
+      handlePostIntroPointerUp,
+      {
+        capture: true,
+        passive: true
+      }
+    );
+
+
+    /* ============================================================
+       STOP INTRO + UNLOCK ON 6TH DRAG
+       ============================================================ */
+
+    function stopIntroAndUnlock() {
+
+      if (!isIntroActive) {
+        return;
+      }
+
+
+      isIntroActive =
+        false;
+
+      isUserInterfered =
+        true;
+
+      isAutoRotationActive =
+        false;
+
+
+      if (
+        animFrameId !== null
+      ) {
+
+        cancelAnimationFrame(
+          animFrameId
+        );
+
+        animFrameId =
+          null;
+      }
+
+
+      viewer.setOption(
+        'maxFov',
+        USER_MAX_FOV
+      );
+
+
+      enableUserInteraction();
+
+
+      hints.classList.remove(
+        'visible'
+      );
+    }
+
+
+    /* ============================================================
+       INTRO DRAG ATTEMPT TRACKING
+       ============================================================ */
+
+    let introPointerDown =
+      false;
+
+    let introDragDetected =
+      false;
+
+    let introStartX =
+      0;
+
+    let introStartY =
+      0;
+
+
+    function handleIntroPointerDown(
+      event
+    ) {
+
+      if (!isIntroActive) {
+        return;
+      }
+
+
+      introPointerDown =
+        true;
+
+      introDragDetected =
+        false;
+
+
+      introStartX =
+        event.clientX;
+
+      introStartY =
+        event.clientY;
+
+
+      blocker.classList.add(
+        'dragging'
+      );
+    }
+
+
+    function handleIntroPointerMove(
+      event
+    ) {
+
+      if (!isIntroActive) {
+        return;
+      }
+
+
+      if (!introPointerDown) {
+        return;
+      }
+
+
+      if (introDragDetected) {
+        return;
+      }
+
+
+      const dx =
+        event.clientX -
+        introStartX;
+
+      const dy =
+        event.clientY -
+        introStartY;
+
+
+      const distance =
+        Math.sqrt(
+          dx * dx +
+          dy * dy
+        );
+
+
+      /*
+       * Only a real click-and-drag counts.
+       */
+      if (
+        distance <
+        DRAG_THRESHOLD
+      ) {
+        return;
+      }
+
+
+      introDragDetected =
+        true;
+
+
+      introInteractionAttempts++;
+
+
+      /*
+       * Attempts 1-5 remain blocked.
+       */
+      if (
+        introInteractionAttempts <
+        INTRO_UNLOCK_ATTEMPTS
+      ) {
+
+        event.preventDefault();
+
+        event.stopPropagation();
+
+        return;
+      }
+
+
+      /*
+       * Sixth drag:
+       * stop intro and unlock viewer.
+       */
+      stopIntroAndUnlock();
+    }
+
+
+    function handleIntroPointerUp() {
+
+      if (!isIntroActive) {
+        return;
+      }
+
+
+      introPointerDown =
+        false;
+
+      introDragDetected =
+        false;
+
+
+      blocker.classList.remove(
+        'dragging'
+      );
+    }
+
+
+    blocker.addEventListener(
+      'pointerdown',
+      handleIntroPointerDown,
+      {
+        capture: true,
+        passive: false
+      }
+    );
+
+
+    blocker.addEventListener(
+      'pointermove',
+      handleIntroPointerMove,
+      {
+        capture: true,
+        passive: false
+      }
+    );
+
+
+    blocker.addEventListener(
+      'pointerup',
+      handleIntroPointerUp,
+      {
+        capture: true,
+        passive: false
+      }
+    );
+
+
+    blocker.addEventListener(
+      'pointercancel',
+      handleIntroPointerUp,
+      {
+        capture: true,
+        passive: false
+      }
+    );
+
+
+    /*
+     * Touch fallback during intro.
+     */
+    blocker.addEventListener(
+      'touchstart',
+      (event) => {
+
+        if (!isIntroActive) {
+          return;
+        }
+
+
+        const touch =
+          event.touches[0];
+
+
+        if (!touch) {
+          return;
+        }
+
+
+        introPointerDown =
+          true;
+
+        introDragDetected =
+          false;
+
+        introStartX =
+          touch.clientX;
+
+        introStartY =
+          touch.clientY;
+      },
+      {
+        capture: true,
+        passive: false
+      }
+    );
+
+
+    blocker.addEventListener(
+      'touchmove',
+      (event) => {
+
+        if (!isIntroActive) {
+          return;
+        }
+
+
+        if (!introPointerDown) {
+          return;
+        }
+
+
+        if (introDragDetected) {
+          return;
+        }
+
+
+        const touch =
+          event.touches[0];
+
+
+        if (!touch) {
+          return;
+        }
+
+
+        const dx =
+          touch.clientX -
+          introStartX;
+
+        const dy =
+          touch.clientY -
+          introStartY;
+
+
+        const distance =
+          Math.sqrt(
+            dx * dx +
+            dy * dy
+          );
+
+
+        if (
+          distance <
+          DRAG_THRESHOLD
+        ) {
+          return;
+        }
+
+
+        introDragDetected =
+          true;
+
+
+        introInteractionAttempts++;
+
+
+        if (
+          introInteractionAttempts <
+          INTRO_UNLOCK_ATTEMPTS
+        ) {
+
+          event.preventDefault();
+
+          event.stopPropagation();
+
+          return;
+        }
+
+
+        stopIntroAndUnlock();
+      },
+      {
+        capture: true,
+        passive: false
+      }
+    );
+
+
+    blocker.addEventListener(
+      'touchend',
+      handleIntroPointerUp,
+      {
+        capture: true,
+        passive: false
+      }
+    );
+
+
+    /* ============================================================
+       PANORAMA LOADED
+       ============================================================ */
+
+    viewer.addEventListener(
+      'panorama-loaded',
+      () => {
+
+        /*
+         * Set renderer background again now that the viewer
+         * has definitely initialized its rendering pipeline.
+         */
+        setRendererBackground();
+
+
+        const startTime =
+          performance.now();
+
+        let lastTime =
+          startTime;
+
+
+        /* ========================================================
+           TIMINGS
+           ======================================================== */
+
+        const tStage0_Spin90 =
+          10000;
+
+        const tStage1a_ToHalf =
+          3500;
+
+        const tStage1_Pause =
+          6000;
+
+        const tStage1b_ToBottom =
+          3500;
+
+        const tStage1b_Pause =
+          3000;
+
+        const tStage2_ToEqSlow =
+          2500;
+
+
+        const totalIntroTime =
+          tStage0_Spin90 +
+          tStage1a_ToHalf +
+          tStage1_Pause +
+          tStage1b_ToBottom +
+          tStage1b_Pause +
+          tStage2_ToEqSlow;
+
+
+        /* ========================================================
+           CAMERA
+           ======================================================== */
+
+        const horizonPitch =
+          -0.38;
+
+        const targetSlightDownPitch =
+          -0.45;
+
+
+        const startSpinSpeed =
+          0.0006;
+
+        const finalSpinSpeed =
+          0.00015;
+
+
+        let currentYaw =
+          0;
+
+        let lastFisheye =
+          2;
+
+
+        /* ========================================================
+           INTRO ANIMATION
+           ======================================================== */
+
+        function animate(
+          currentTime
+        ) {
+
+          if (!isIntroActive) {
+            return;
+          }
+
+
+          const deltaTime =
+            currentTime -
+            lastTime;
+
+          lastTime =
+            currentTime;
+
+
+          const elapsed =
+            currentTime -
+            startTime;
+
+
+          const overallProgress =
+            Math.min(
+              elapsed /
+              totalIntroTime,
+              1
+            );
+
+
+          const baseSpinSpeed =
+            startSpinSpeed -
+            (
+              startSpinSpeed -
+              finalSpinSpeed
+            ) *
+            easeOutCubic(
+              overallProgress
+            );
+
+
+          let currentSpinSpeed =
+            baseSpinSpeed;
+
+          let currentPitch =
+            -Math.PI / 2;
+
+          let currentZoom =
+            0;
+
+          let currentFisheye =
+            2;
+
+
+          const m0 =
+            tStage0_Spin90;
+
+          const m1a =
+            m0 +
+            tStage1a_ToHalf;
+
+          const mPause1 =
+            m1a +
+            tStage1_Pause;
+
+          const m1b =
+            mPause1 +
+            tStage1b_ToBottom;
+
+          const mPause2 =
+            m1b +
+            tStage1b_Pause;
+
+
+          /* ======================================================
+             STAGE 0
+             ====================================================== */
+
+          if (
+            elapsed < m0
+          ) {
+
+            const phaseProgress =
+              elapsed /
+              m0;
+
+
+            const easeP0 =
+              easeInOutQuint(
+                phaseProgress
+              );
+
+
+            const speedMultiplier =
+              2.0 -
+              1.5 *
+              easeP0;
+
+
+            currentSpinSpeed =
+              baseSpinSpeed *
+              speedMultiplier;
+
+
+            currentPitch =
+              -Math.PI / 2;
+
+
+            currentZoom =
+              35 *
+              easeP0;
+
+
+            currentFisheye =
+              2;
+          }
+
+
+          /* ======================================================
+             STAGE 1A
+             ====================================================== */
+
+          else if (
+            elapsed < m1a
+          ) {
+
+            const phaseProgress =
+              (
+                elapsed -
+                m0
+              ) /
+              tStage1a_ToHalf;
+
+
+            const easeP1a =
+              easeInOutSine(
+                phaseProgress
+              );
+
+
+            const speedMultiplier =
+              0.5 +
+              1.5 *
+              easeP1a;
+
+
+            currentSpinSpeed =
+              baseSpinSpeed *
+              speedMultiplier;
+
+
+            currentPitch =
+              (
+                -Math.PI / 2
+              ) +
+              (
+                horizonPitch +
+                Math.PI / 2
+              ) *
+              easeP1a;
+
+
+            currentZoom =
+              35 +
+              3 *
+              easeP1a;
+
+
+            currentFisheye =
+              2;
+          }
+
+
+          /* ======================================================
+             STAGE 1 PAUSE
+             ====================================================== */
+
+          else if (
+            elapsed < mPause1
+          ) {
+
+            currentSpinSpeed =
+              baseSpinSpeed *
+              2.0;
+
+
+            currentPitch =
+              horizonPitch;
+
+
+            currentZoom =
+              38;
+
+
+            currentFisheye =
+              2;
+          }
+
+
+          /* ======================================================
+             STAGE 1B
+             ====================================================== */
+
+          else if (
+            elapsed < m1b
+          ) {
+
+            const phaseProgress =
+              (
+                elapsed -
+                mPause1
+              ) /
+              tStage1b_ToBottom;
+
+
+            const easeP1b =
+              easeInOutQuint(
+                phaseProgress
+              );
+
+
+            let speedMultiplier;
+
+
+            if (
+              phaseProgress < 0.25
+            ) {
+
+              speedMultiplier =
+                2.0;
+            }
+
+            else if (
+              phaseProgress < 0.55
+            ) {
+
+              const subProgress =
+                (
+                  phaseProgress -
+                  0.25
+                ) /
+                0.30;
+
+
+              speedMultiplier =
+                2.0 +
+                10.0 *
+                easeInOutCubic(
+                  subProgress
+                );
+            }
+
+            else if (
+              phaseProgress < 0.85
+            ) {
+
+              const subProgress =
+                (
+                  phaseProgress -
+                  0.55
+                ) /
+                0.30;
+
+
+              speedMultiplier =
+                12.0 -
+                10.0 *
+                easeOutSeptic(
+                  subProgress
+                );
+            }
+
+            else {
+
+              speedMultiplier =
+                2.0;
+            }
+
+
+            currentSpinSpeed =
+              baseSpinSpeed *
+              speedMultiplier;
+
+
+            currentPitch =
+              horizonPitch +
+              (
+                Math.PI / 2 -
+                horizonPitch
+              ) *
+              easeP1b;
+
+
+            const stage1bTimeElapsed =
+              elapsed -
+              mPause1;
+
+
+            const totalZoomSpan =
+              (
+                tStage1b_ToBottom *
+                0.95
+              ) +
+              tStage1b_Pause;
+
+
+            const zoomElapsed =
+              stage1bTimeElapsed -
+              (
+                tStage1b_ToBottom *
+                0.05
+              );
+
+
+            if (
+              zoomElapsed <= 0
+            ) {
+
+              currentZoom =
+                38;
+            }
+
+            else {
+
+              const zoomProgress =
+                Math.min(
+                  zoomElapsed /
+                  totalZoomSpan,
+                  1
+                );
+
+
+              currentZoom =
+                38 -
+                28 *
+                easeInOutCubic(
+                  zoomProgress
+                );
+            }
+
+
+            currentFisheye =
+              2;
+          }
+
+
+          /* ======================================================
+             STAGE 1B PAUSE
+             ====================================================== */
+
+          else if (
+            elapsed < mPause2
+          ) {
+
+            currentSpinSpeed =
+              baseSpinSpeed *
+              2.0;
+
+
+            currentPitch =
+              Math.PI / 2;
+
+
+            const totalZoomSpan =
+              (
+                tStage1b_ToBottom *
+                0.95
+              ) +
+              tStage1b_Pause;
+
+
+            const zoomElapsed =
+              (
+                elapsed -
+                mPause1
+              ) -
+              (
+                tStage1b_ToBottom *
+                0.05
+              );
+
+
+            const zoomProgress =
+              Math.min(
+                zoomElapsed /
+                totalZoomSpan,
+                1
+              );
+
+
+            currentZoom =
+              38 -
+              28 *
+              easeInOutCubic(
+                zoomProgress
+              );
+
+
+            currentFisheye =
+              2;
+          }
+
+
+          /* ======================================================
+             STAGE 2
+             ====================================================== */
+
+          else if (
+            elapsed <
+            totalIntroTime
+          ) {
+
+            const phaseProgress =
+              (
+                elapsed -
+                mPause2
+              ) /
+              tStage2_ToEqSlow;
+
+
+            const easeP2 =
+              easeInOutCubic(
+                phaseProgress
+              );
+
+
+            let speedMultiplier;
+
+
+            if (
+              phaseProgress < 0.5
+            ) {
+
+              speedMultiplier =
+                2.0 +
+                18.0 *
+                easeInOutSine(
+                  phaseProgress * 2
+                );
+            }
+
+            else {
+
+              speedMultiplier =
+                20.0 -
+                19.0 *
+                easeInOutSine(
+                  (
+                    phaseProgress -
+                    0.5
+                  ) * 2
+                );
+            }
+
+
+            currentSpinSpeed =
+              baseSpinSpeed *
+              speedMultiplier;
+
+
+            currentPitch =
+              (
+                Math.PI / 2
+              ) +
+              (
+                targetSlightDownPitch -
+                Math.PI / 2
+              ) *
+              easeP2;
+
+
+            currentZoom =
+              10 +
+              40 *
+              easeP2;
+
+
+            currentFisheye =
+              2 -
+              1.5 *
+              easeP2;
+          }
+
+
+          /* ======================================================
+             INTRO FINISHED NATURALLY
+             ====================================================== */
+
+          else {
+
+            /*
+             * Exact final fisheye.
+             */
+            viewer.setOption(
+              'fisheye',
+              0.5
+            );
+
+            lastFisheye =
+              0.5;
+
+
+            /*
+             * Exact final zoom level.
+             */
+            viewer.zoom(
+              50
+            );
+
+
+            /*
+             * Exact final orientation.
+             */
+            viewer.rotate({
+
+              pitch:
+                targetSlightDownPitch,
+
+              yaw:
+                currentYaw
+            });
+
+
+            /*
+             * Only after animation finishes:
+             * restrict user maximum FOV.
+             */
+            viewer.setOption(
+              'maxFov',
+              USER_MAX_FOV
+            );
+
+
+            /*
+             * Ensure the renderer background stays blue.
+             */
+            setRendererBackground();
+
+
+            /*
+             * Enable controls.
+             */
+            enableUserInteraction();
+
+
+            /*
+             * Intro complete.
+             */
+            isIntroActive =
+              false;
+
+
+            /*
+             * Keep automatic spin active until the user
+             * actually click-drags.
+             */
+            isAutoRotationActive =
+              true;
+
+            isUserInterfered =
+              false;
+
+
+            /*
+             * UI stays visible until actual drag.
+             */
+            hints.classList.add(
+              'visible'
+            );
+
+
+            animFrameId =
+              requestAnimationFrame(
+                postIntroAnimation
+              );
+
+            return;
+          }
+
+
+          /* ======================================================
+             APPLY INTRO FRAME
+             ====================================================== */
+
+          currentYaw +=
+            currentSpinSpeed *
+            deltaTime;
+
+
+          if (
+            Math.abs(
+              currentFisheye -
+              lastFisheye
+            ) > 0.0001
+          ) {
+
+            viewer.setOption(
+              'fisheye',
+              currentFisheye
+            );
+
+            lastFisheye =
+              currentFisheye;
+          }
+
+
+          viewer.zoom(
+            currentZoom
+          );
+
+
+          viewer.rotate({
+
+            pitch:
+              currentPitch,
+
+            yaw:
+              currentYaw
+          });
+
+
+          animFrameId =
+            requestAnimationFrame(
+              animate
+            );
+        }
+
+
+        /* ========================================================
+           POST-INTRO AUTOMATIC SPIN
+           ======================================================== */
+
+        function postIntroAnimation(
+          currentTime
+        ) {
+
+          if (isIntroActive) {
+            return;
+          }
+
+
+          const deltaTime =
+            currentTime -
+            lastTime;
+
+
+          lastTime =
+            currentTime;
+
+
+          /*
+           * Continue spinning until the user performs
+           * a genuine click-and-drag.
+           */
+          if (
+            isAutoRotationActive &&
+            !isUserInterfered
+          ) {
+
+            currentYaw +=
+              finalSpinSpeed *
+              deltaTime;
+
+
+            const currentPos =
+              viewer.getPosition();
+
+
+            viewer.rotate({
+
+              pitch:
+                currentPos.pitch,
+
+              yaw:
+                currentYaw
+            });
+          }
+
+
+          /*
+           * Keep RAF alive but do not overwrite the user's
+           * camera position after the first real drag.
+           */
+          animFrameId =
+            requestAnimationFrame(
+              postIntroAnimation
+            );
+        }
+
+
+        /*
+         * Start intro.
+         */
+        animFrameId =
+          requestAnimationFrame(
+            animate
+          );
+
+      },
+      {
+        once: true
+      }
+    );
+
+
+    /* ============================================================
+       POST-INTRO DYNAMIC FISHEYE
+       ============================================================ */
+
+    viewer.addEventListener(
+      'zoom-updated',
+      (e) => {
+
+        if (isIntroActive) {
+          return;
+        }
+
+
+        const currentZoom =
+          e.zoomLevel;
+
+
+        if (
+          currentZoom < 50
+        ) {
+
+          const dynamicFisheye =
+            0.5 +
+            (
+              (50 - currentZoom) /
+              50
+            ) * 1.5;
+
+
+          viewer.setOption(
+            'fisheye',
+            dynamicFisheye
+          );
+        }
+
+        else {
+
+          viewer.setOption(
+            'fisheye',
+            0.5
+          );
+        }
+      }
+    );
+
+  </script>
+
+</body>
+</html>
