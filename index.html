@@ -278,6 +278,11 @@
       justify-content:
         center;
 
+      /*
+       * Desktop value remains exactly 30px.
+       * Mobile media queries below reduce this gap as necessary.
+       */
+
       gap:
         30px;
 
@@ -310,6 +315,48 @@
       transition:
         opacity 0.35s ease,
         visibility 0s linear 0s;
+    }
+
+
+    /*
+     * MOBILE BUTTON SPACING
+     *
+     * The button size stays 55px.
+     * Only the distance between buttons is reduced on narrow screens.
+     *
+     * 5 buttons = 275px total button width.
+     *
+     * The gaps are reduced progressively so the group does not
+     * run outside the phone screen.
+     */
+
+    @media (max-width: 600px) {
+
+      #location-buttons {
+
+        gap:
+          clamp(
+            5px,
+            calc(
+              (100vw - 275px) / 4
+            ),
+            18px
+          );
+
+      }
+
+    }
+
+
+    @media (max-width: 380px) {
+
+      #location-buttons {
+
+        gap:
+          4px;
+
+      }
+
     }
 
 
@@ -1009,6 +1056,10 @@
 <body>
 
 
+  <!-- ============================================================
+       FIRST LOAD SPINNER
+       ============================================================ -->
+
   <div id="first-load-spinner">
 
     <div class="spinner"></div>
@@ -1228,6 +1279,47 @@
 
     const INTRO_UNLOCK_ATTEMPTS =
       6;
+
+
+    /* ============================================================
+       TOUCH PINCH ZOOM STATE
+       ============================================================ */
+
+    /*
+     * This affects ONLY user pinch zoom.
+     *
+     * 1.0 = original sensitivity
+     * 0.5 = half of the detected pinch movement
+     *
+     * The intro animation does not use this value.
+     */
+
+    const MOBILE_PINCH_ZOOM_SENSITIVITY =
+      0.55;
+
+
+    let pinchActive =
+      false;
+
+
+    let pinchStartDistance =
+      0;
+
+
+    let pinchStartZoom =
+      0;
+
+
+    let pinchLastDistance =
+      0;
+
+
+    let pinchZoomTarget =
+      null;
+
+
+    let pinchZoomRaf =
+      null;
 
 
     /* ============================================================
@@ -1500,60 +1592,6 @@
 
 
     setRendererBackground();
-
-
-    /* ============================================================
-       OPTIMIZED CAMERA APPLY
-       ============================================================ */
-
-    /*
-     * IMPORTANT:
-     *
-     * The animation values themselves are untouched.
-     *
-     * This function only prevents multiple independent viewer
-     * updates from being requested for the same animation frame.
-     *
-     * rotate + zoom still receive exactly the same values.
-     */
-
-    function applyAnimationCamera(
-      pitch,
-      yaw,
-      zoom
-    ) {
-
-      viewer.rotate({
-
-        pitch:
-          pitch,
-
-        yaw:
-          yaw
-
-      });
-
-
-      viewer.zoom(
-        zoom
-      );
-
-
-      /*
-       * Photo Sphere Viewer exposes needsUpdate() specifically
-       * for requesting a render after scene state changes.
-       */
-
-      if (
-        typeof viewer.needsUpdate ===
-        'function'
-      ) {
-
-        viewer.needsUpdate();
-
-      }
-
-    }
 
 
     /* ============================================================
@@ -2219,6 +2257,238 @@
        TOUCH POST-INTRO
        ============================================================ */
 
+    function getTouchDistance(
+      touches
+    ) {
+
+      if (
+        touches.length < 2
+      ) {
+
+        return 0;
+
+      }
+
+
+      const dx =
+        touches[0].clientX -
+        touches[1].clientX;
+
+
+      const dy =
+        touches[0].clientY -
+        touches[1].clientY;
+
+
+      return Math.sqrt(
+
+        dx * dx +
+        dy * dy
+
+      );
+
+    }
+
+
+    function isMobileTouchDevice() {
+
+      return (
+
+        window.matchMedia(
+          '(pointer: coarse)'
+        ).matches
+
+        ||
+
+        navigator.maxTouchPoints > 0
+
+      );
+
+    }
+
+
+    function startPinchZoom(
+      event
+    ) {
+
+      if (
+
+        !isMobileTouchDevice() ||
+
+        isIntroActive ||
+
+        event.touches.length < 2
+
+      ) {
+
+        return;
+
+      }
+
+
+      pinchActive =
+        true;
+
+
+      pinchStartDistance =
+        getTouchDistance(
+          event.touches
+        );
+
+
+      pinchLastDistance =
+        pinchStartDistance;
+
+
+      pinchStartZoom =
+        viewer.getZoomLevel();
+
+
+      pinchZoomTarget =
+        pinchStartZoom;
+
+
+      stopAutomaticRotation();
+
+
+      event.preventDefault();
+
+    }
+
+
+    function updatePinchZoom(
+      event
+    ) {
+
+      if (
+
+        !pinchActive ||
+
+        event.touches.length < 2
+
+      ) {
+
+        return;
+
+      }
+
+
+      const distance =
+        getTouchDistance(
+          event.touches
+        );
+
+
+      if (
+        distance <= 0
+      ) {
+
+        return;
+
+      }
+
+
+      /*
+       * Reduce the amount of zoom generated by the same
+       * finger movement.
+       *
+       * This does NOT modify any animation values.
+       */
+
+      const distanceChange =
+
+        distance -
+        pinchStartDistance;
+
+
+      const adjustedDistanceChange =
+
+        distanceChange *
+        MOBILE_PINCH_ZOOM_SENSITIVITY;
+
+
+      /*
+       * Photo Sphere Viewer zoom levels increase when zooming in.
+       *
+       * The divisor keeps the response moderate while preserving
+       * the original zoom direction.
+       */
+
+      const zoomChange =
+
+        adjustedDistanceChange /
+        18;
+
+
+      pinchZoomTarget =
+
+        pinchStartZoom +
+        zoomChange;
+
+
+      const minZoom =
+        0;
+
+
+      const maxZoom =
+        viewer.getMaxZoomLevel();
+
+
+      pinchZoomTarget =
+
+        Math.max(
+
+          minZoom,
+
+          Math.min(
+
+            maxZoom,
+
+            pinchZoomTarget
+
+          )
+
+        );
+
+
+      pinchLastDistance =
+        distance;
+
+
+      /*
+       * Apply only the user pinch zoom.
+       */
+
+      viewer.zoom(
+        pinchZoomTarget
+      );
+
+
+      event.preventDefault();
+
+    }
+
+
+    function endPinchZoom() {
+
+      pinchActive =
+        false;
+
+
+      pinchStartDistance =
+        0;
+
+
+      pinchLastDistance =
+        0;
+
+
+      pinchZoomTarget =
+        null;
+
+    }
+
+
     viewer.container.addEventListener(
 
       'touchstart',
@@ -2226,6 +2496,19 @@
       (event) => {
 
         if (isIntroActive) {
+
+          return;
+
+        }
+
+
+        if (
+          event.touches.length >= 2
+        ) {
+
+          startPinchZoom(
+            event
+          );
 
           return;
 
@@ -2265,7 +2548,7 @@
           true,
 
         passive:
-          true
+          false
       }
 
     );
@@ -2277,9 +2560,31 @@
 
       (event) => {
 
+        if (isIntroActive) {
+
+          return;
+
+        }
+
+
         if (
 
-          isIntroActive ||
+          pinchActive &&
+
+          event.touches.length >= 2
+
+        ) {
+
+          updatePinchZoom(
+            event
+          );
+
+          return;
+
+        }
+
+
+        if (
 
           !isPointerDown ||
 
@@ -2344,7 +2649,7 @@
           true,
 
         passive:
-          true
+          false
       }
 
     );
@@ -2354,14 +2659,56 @@
 
       'touchend',
 
-      handlePostIntroPointerUp,
+      (event) => {
+
+        if (
+          pinchActive
+        ) {
+
+          if (
+            event.touches.length < 2
+          ) {
+
+            endPinchZoom();
+
+          }
+
+        }
+
+
+        handlePostIntroPointerUp();
+
+      },
 
       {
         capture:
           true,
 
         passive:
-          true
+          false
+      }
+
+    );
+
+
+    viewer.container.addEventListener(
+
+      'touchcancel',
+
+      () => {
+
+        endPinchZoom();
+
+        handlePostIntroPointerUp();
+
+      },
+
+      {
+        capture:
+          true,
+
+        passive:
+          false
       }
 
     );
@@ -3048,20 +3395,20 @@
         }
 
 
-        /*
-         * Same pitch, yaw and zoom values.
-         * Single consolidated camera application.
-         */
-
-        applyAnimationCamera(
-
-          pitch,
-
-          currentYaw,
-
+        viewer.zoom(
           zoom
-
         );
+
+
+        viewer.rotate({
+
+          pitch:
+            pitch,
+
+          yaw:
+            currentYaw
+
+        });
 
 
         if (
@@ -3956,19 +4303,20 @@
         }
 
 
-        /*
-         * EXACT SAME calculated values as before.
-         */
-
-        applyAnimationCamera(
-
-          currentPitch,
-
-          currentYaw,
-
+        viewer.zoom(
           currentZoom
-
         );
+
+
+        viewer.rotate({
+
+          pitch:
+            currentPitch,
+
+          yaw:
+            currentYaw
+
+        });
 
 
         animFrameId =
