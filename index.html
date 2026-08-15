@@ -278,13 +278,17 @@
       justify-content:
         center;
 
-      /*
-       * Desktop value remains exactly 30px.
-       * Mobile media queries below reduce this gap as necessary.
-       */
-
       gap:
         30px;
+
+      width:
+        max-content;
+
+      max-width:
+        calc(100vw - 24px);
+
+      box-sizing:
+        border-box;
 
       opacity:
         0;
@@ -315,48 +319,6 @@
       transition:
         opacity 0.35s ease,
         visibility 0s linear 0s;
-    }
-
-
-    /*
-     * MOBILE BUTTON SPACING
-     *
-     * The button size stays 55px.
-     * Only the distance between buttons is reduced on narrow screens.
-     *
-     * 5 buttons = 275px total button width.
-     *
-     * The gaps are reduced progressively so the group does not
-     * run outside the phone screen.
-     */
-
-    @media (max-width: 600px) {
-
-      #location-buttons {
-
-        gap:
-          clamp(
-            5px,
-            calc(
-              (100vw - 275px) / 4
-            ),
-            18px
-          );
-
-      }
-
-    }
-
-
-    @media (max-width: 380px) {
-
-      #location-buttons {
-
-        gap:
-          4px;
-
-      }
-
     }
 
 
@@ -490,6 +452,61 @@
           0,
           0
         );
+    }
+
+
+    /* ============================================================
+       PHONE BUTTON SPACING
+       ============================================================ */
+
+    @media (max-width: 600px) {
+
+      #location-buttons {
+
+        /*
+         * 55px x 5 = 275px.
+         *
+         * The gap is reduced gradually on narrower screens,
+         * but never below 12px.
+         *
+         * This keeps a clearly visible distance between buttons
+         * while preventing the group from running outside the
+         * screen.
+         */
+
+        gap:
+          clamp(
+            12px,
+            calc(
+              (
+                100vw -
+                24px -
+                275px
+              ) / 4
+            ),
+            24px
+          );
+
+        max-width:
+          calc(100vw - 24px);
+
+      }
+
+    }
+
+
+    @media (max-width: 360px) {
+
+      #location-buttons {
+
+        gap:
+          10px;
+
+        max-width:
+          calc(100vw - 16px);
+
+      }
+
     }
 
 
@@ -1229,6 +1246,15 @@
       0;
 
 
+    /*
+     * IMPORTANT:
+     *
+     * This is ONLY for the very first page-load intro.
+     *
+     * It is deliberately NOT reset when another panorama
+     * is selected.
+     */
+
     let introInteractionAttempts =
       0;
 
@@ -1277,49 +1303,13 @@
       8;
 
 
-    const INTRO_UNLOCK_ATTEMPTS =
-      6;
-
-
-    /* ============================================================
-       TOUCH PINCH ZOOM STATE
-       ============================================================ */
-
     /*
-     * This affects ONLY user pinch zoom.
-     *
-     * 1.0 = original sensitivity
-     * 0.5 = half of the detected pinch movement
-     *
-     * The intro animation does not use this value.
+     * The 5-attempt blocker is only used during the
+     * first page-load intro.
      */
 
-    const MOBILE_PINCH_ZOOM_SENSITIVITY =
-      0.55;
-
-
-    let pinchActive =
-      false;
-
-
-    let pinchStartDistance =
-      0;
-
-
-    let pinchStartZoom =
-      0;
-
-
-    let pinchLastDistance =
-      0;
-
-
-    let pinchZoomTarget =
-      null;
-
-
-    let pinchZoomRaf =
-      null;
+    const INTRO_UNLOCK_ATTEMPTS =
+      6;
 
 
     /* ============================================================
@@ -1436,6 +1426,47 @@
 
     const BACKGROUND_COLOR =
       0xf5fafe;
+
+
+    /* ============================================================
+       PHONE ZOOM
+       ============================================================ */
+
+    const IS_TOUCH_DEVICE =
+
+      (
+        'ontouchstart' in window
+      ) ||
+
+      (
+        navigator.maxTouchPoints >
+        0
+      );
+
+
+    /*
+     * Only touch/pinch zoom is slowed.
+     *
+     * The panorama intro animations are NOT modified.
+     *
+     * 0.45 means the user's pinch movement produces roughly
+     * 45% of the normal zoom response.
+     */
+
+    const PHONE_ZOOM_RESPONSE =
+      0.45;
+
+
+    let lastTouchDistance =
+      null;
+
+
+    let touchZoomLevel =
+      null;
+
+
+    let applyingTouchZoom =
+      false;
 
 
     /* ============================================================
@@ -2257,238 +2288,6 @@
        TOUCH POST-INTRO
        ============================================================ */
 
-    function getTouchDistance(
-      touches
-    ) {
-
-      if (
-        touches.length < 2
-      ) {
-
-        return 0;
-
-      }
-
-
-      const dx =
-        touches[0].clientX -
-        touches[1].clientX;
-
-
-      const dy =
-        touches[0].clientY -
-        touches[1].clientY;
-
-
-      return Math.sqrt(
-
-        dx * dx +
-        dy * dy
-
-      );
-
-    }
-
-
-    function isMobileTouchDevice() {
-
-      return (
-
-        window.matchMedia(
-          '(pointer: coarse)'
-        ).matches
-
-        ||
-
-        navigator.maxTouchPoints > 0
-
-      );
-
-    }
-
-
-    function startPinchZoom(
-      event
-    ) {
-
-      if (
-
-        !isMobileTouchDevice() ||
-
-        isIntroActive ||
-
-        event.touches.length < 2
-
-      ) {
-
-        return;
-
-      }
-
-
-      pinchActive =
-        true;
-
-
-      pinchStartDistance =
-        getTouchDistance(
-          event.touches
-        );
-
-
-      pinchLastDistance =
-        pinchStartDistance;
-
-
-      pinchStartZoom =
-        viewer.getZoomLevel();
-
-
-      pinchZoomTarget =
-        pinchStartZoom;
-
-
-      stopAutomaticRotation();
-
-
-      event.preventDefault();
-
-    }
-
-
-    function updatePinchZoom(
-      event
-    ) {
-
-      if (
-
-        !pinchActive ||
-
-        event.touches.length < 2
-
-      ) {
-
-        return;
-
-      }
-
-
-      const distance =
-        getTouchDistance(
-          event.touches
-        );
-
-
-      if (
-        distance <= 0
-      ) {
-
-        return;
-
-      }
-
-
-      /*
-       * Reduce the amount of zoom generated by the same
-       * finger movement.
-       *
-       * This does NOT modify any animation values.
-       */
-
-      const distanceChange =
-
-        distance -
-        pinchStartDistance;
-
-
-      const adjustedDistanceChange =
-
-        distanceChange *
-        MOBILE_PINCH_ZOOM_SENSITIVITY;
-
-
-      /*
-       * Photo Sphere Viewer zoom levels increase when zooming in.
-       *
-       * The divisor keeps the response moderate while preserving
-       * the original zoom direction.
-       */
-
-      const zoomChange =
-
-        adjustedDistanceChange /
-        18;
-
-
-      pinchZoomTarget =
-
-        pinchStartZoom +
-        zoomChange;
-
-
-      const minZoom =
-        0;
-
-
-      const maxZoom =
-        viewer.getMaxZoomLevel();
-
-
-      pinchZoomTarget =
-
-        Math.max(
-
-          minZoom,
-
-          Math.min(
-
-            maxZoom,
-
-            pinchZoomTarget
-
-          )
-
-        );
-
-
-      pinchLastDistance =
-        distance;
-
-
-      /*
-       * Apply only the user pinch zoom.
-       */
-
-      viewer.zoom(
-        pinchZoomTarget
-      );
-
-
-      event.preventDefault();
-
-    }
-
-
-    function endPinchZoom() {
-
-      pinchActive =
-        false;
-
-
-      pinchStartDistance =
-        0;
-
-
-      pinchLastDistance =
-        0;
-
-
-      pinchZoomTarget =
-        null;
-
-    }
-
-
     viewer.container.addEventListener(
 
       'touchstart',
@@ -2496,19 +2295,6 @@
       (event) => {
 
         if (isIntroActive) {
-
-          return;
-
-        }
-
-
-        if (
-          event.touches.length >= 2
-        ) {
-
-          startPinchZoom(
-            event
-          );
 
           return;
 
@@ -2541,6 +2327,49 @@
         pointerStartY =
           touch.clientY;
 
+
+        /*
+         * Reset pinch tracking whenever a new touch begins.
+         */
+
+        if (
+          event.touches.length >= 2
+        ) {
+
+          const a =
+            event.touches[0];
+
+          const b =
+            event.touches[1];
+
+
+          lastTouchDistance =
+            Math.hypot(
+
+              a.clientX -
+              b.clientX,
+
+              a.clientY -
+              b.clientY
+
+            );
+
+
+          touchZoomLevel =
+            viewer.getZoomLevel();
+
+        }
+
+        else {
+
+          lastTouchDistance =
+            null;
+
+          touchZoomLevel =
+            null;
+
+        }
+
       },
 
       {
@@ -2548,11 +2377,18 @@
           true,
 
         passive:
-          false
+          true
       }
 
     );
 
+
+    /*
+     * PHONE PINCH ZOOM
+     *
+     * This does not alter any intro animation.
+     * It only reduces the response of a two-finger pinch.
+     */
 
     viewer.container.addEventListener(
 
@@ -2568,28 +2404,7 @@
 
 
         if (
-
-          pinchActive &&
-
-          event.touches.length >= 2
-
-        ) {
-
-          updatePinchZoom(
-            event
-          );
-
-          return;
-
-        }
-
-
-        if (
-
-          !isPointerDown ||
-
-          dragHasMoved
-
+          event.touches.length < 2
         ) {
 
           return;
@@ -2597,50 +2412,118 @@
         }
 
 
-        const touch =
+        if (!IS_TOUCH_DEVICE) {
+
+          return;
+
+        }
+
+
+        const a =
           event.touches[0];
 
-
-        if (!touch) {
-
-          return;
-
-        }
-
-
-        const dx =
-          touch.clientX -
-          pointerStartX;
-
-
-        const dy =
-          touch.clientY -
-          pointerStartY;
+        const b =
+          event.touches[1];
 
 
         const distance =
-          Math.sqrt(
+          Math.hypot(
 
-            dx * dx +
-            dy * dy
+            a.clientX -
+            b.clientX,
+
+            a.clientY -
+            b.clientY
 
           );
 
 
         if (
-
-          distance >=
-          DRAG_THRESHOLD
-
+          lastTouchDistance === null
         ) {
 
-          dragHasMoved =
-            true;
+          lastTouchDistance =
+            distance;
 
+          touchZoomLevel =
+            viewer.getZoomLevel();
 
-          stopAutomaticRotation();
+          return;
 
         }
+
+
+        if (
+          touchZoomLevel === null
+        ) {
+
+          touchZoomLevel =
+            viewer.getZoomLevel();
+
+        }
+
+
+        const distanceDelta =
+
+          distance -
+          lastTouchDistance;
+
+
+        /*
+         * Compress the pinch movement.
+         *
+         * Positive delta = fingers moving apart = zoom in.
+         * Negative delta = fingers moving together = zoom out.
+         */
+
+        const zoomDelta =
+
+          distanceDelta *
+          PHONE_ZOOM_RESPONSE *
+          0.05;
+
+
+        touchZoomLevel =
+
+          Math.max(
+
+            0,
+
+            Math.min(
+
+              viewer.getMaxZoomLevel(),
+
+              touchZoomLevel +
+              zoomDelta
+
+            )
+
+          );
+
+
+        /*
+         * Prevent the built-in touch zoom from applying the
+         * full raw pinch movement as well.
+         */
+
+        event.preventDefault();
+
+
+        applyingTouchZoom =
+          true;
+
+
+        viewer.zoom(
+          touchZoomLevel
+        );
+
+
+        applyingTouchZoom =
+          false;
+
+
+        lastTouchDistance =
+          distance;
 
       },
 
@@ -2662,16 +2545,14 @@
       (event) => {
 
         if (
-          pinchActive
+          event.touches.length < 2
         ) {
 
-          if (
-            event.touches.length < 2
-          ) {
+          lastTouchDistance =
+            null;
 
-            endPinchZoom();
-
-          }
+          touchZoomLevel =
+            null;
 
         }
 
@@ -2685,7 +2566,7 @@
           true,
 
         passive:
-          false
+          true
       }
 
     );
@@ -2697,7 +2578,11 @@
 
       () => {
 
-        endPinchZoom();
+        lastTouchDistance =
+          null;
+
+        touchZoomLevel =
+          null;
 
         handlePostIntroPointerUp();
 
@@ -2708,7 +2593,7 @@
           true,
 
         passive:
-          false
+          true
       }
 
     );
@@ -2866,6 +2751,15 @@
       introDragDetected =
         true;
 
+
+      /*
+       * IMPORTANT:
+       *
+       * The counter is ONLY checked while the very first
+       * intro blocker is active.
+       *
+       * Panorama button animations never call this logic.
+       */
 
       introInteractionAttempts++;
 
@@ -4710,6 +4604,23 @@
 
 
             disableUserInteraction();
+
+
+            /*
+             * IMPORTANT:
+             *
+             * We intentionally DO NOT reset:
+             *
+             * introInteractionAttempts
+             *
+             * here.
+             *
+             * The 5/6-drag unlock belongs only to the initial
+             * page-load blocker.
+             *
+             * Buttons switch panoramas without triggering that
+             * blocker again.
+             */
 
 
             try {
