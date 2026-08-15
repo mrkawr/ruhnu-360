@@ -231,6 +231,15 @@
 
       touch-action:
         none;
+
+      user-select:
+        none;
+
+      -webkit-user-select:
+        none;
+
+      -webkit-touch-callout:
+        none;
     }
 
 
@@ -1162,6 +1171,7 @@
 
         START_YAW:
           -60
+
       },
 
 
@@ -1169,6 +1179,7 @@
 
         START_YAW:
           300
+
       },
 
 
@@ -1176,6 +1187,7 @@
 
         START_YAW:
           120
+
       },
 
 
@@ -1183,6 +1195,7 @@
 
         START_YAW:
           120
+
       },
 
 
@@ -1190,6 +1203,7 @@
 
         START_YAW:
           0
+
       }
 
     };
@@ -1236,22 +1250,42 @@
 
 
     /*
-     * ÜHIS1 ONLY:
+     * ============================================================
+     * PERSISTENT ÜHIS1 INTERACTION COUNTER
+     * ============================================================
      *
-     * During each Ühis1 intro:
+     * This is deliberately NOT reset when a panorama button is
+     * clicked.
      *
-     *   interactions 1–5 = blocked
-     *   interaction 6     = stop intro + unlock
+     * It survives:
      *
-     * Other panorama intros never use this counter.
+     *   Ühis1 -> another panorama -> Ühis1
+     *
+     * The counter therefore represents the total number of
+     * blocked interactions received by the Ühis1 intro.
      */
 
     let uhis1InteractionAttempts =
       0;
 
 
-    let isFirstPageLoad =
-      true;
+    /*
+     * Once the sixth interaction has happened, this remains true.
+     *
+     * Selecting Ühis1 again therefore does NOT make the user
+     * perform six more interactions.
+     */
+
+    let uhis1UnlockReached =
+      false;
+
+
+    /*
+     * The sixth interaction must occur DURING a Ühis1 animation.
+     */
+
+    const UHIS1_UNLOCK_ATTEMPTS =
+      6;
 
 
     /* ============================================================
@@ -1262,7 +1296,7 @@
       false;
 
 
-    let introDragDetected =
+    let introInteractionRegistered =
       false;
 
 
@@ -1272,6 +1306,10 @@
 
     let introStartY =
       0;
+
+
+    const DRAG_THRESHOLD =
+      8;
 
 
     let isPointerDown =
@@ -1288,18 +1326,6 @@
 
     let pointerStartY =
       0;
-
-
-    const DRAG_THRESHOLD =
-      8;
-
-
-    /*
-     * Only Ühis1 uses the six-interaction unlock.
-     */
-
-    const INTRO_UNLOCK_ATTEMPTS =
-      6;
 
 
     /* ============================================================
@@ -1557,6 +1583,7 @@
 
           effect:
             'black'
+
         }
 
       });
@@ -1611,17 +1638,6 @@
        ============================================================ */
 
     function revealFirstPanorama() {
-
-      if (!isFirstPageLoad) {
-
-        return;
-
-      }
-
-
-      isFirstPageLoad =
-        false;
-
 
       viewerElement.classList.remove(
         'initial-fade'
@@ -2053,6 +2069,13 @@
       });
 
 
+      /*
+       * Only show the blocker when an intro actually needs it.
+       *
+       * The blocker itself is always used for intro animations,
+       * but its unlock condition is handled separately.
+       */
+
       blocker.classList.remove(
         'unlocked'
       );
@@ -2209,6 +2232,7 @@
 
         passive:
           true
+
       }
 
     );
@@ -2226,6 +2250,7 @@
 
         passive:
           true
+
       }
 
     );
@@ -2243,6 +2268,7 @@
 
         passive:
           true
+
       }
 
     );
@@ -2260,6 +2286,7 @@
 
         passive:
           true
+
       }
 
     );
@@ -2355,10 +2382,15 @@
 
         passive:
           true
+
       }
 
     );
 
+
+    /* ============================================================
+       PHONE PINCH ZOOM
+       ============================================================ */
 
     viewer.container.addEventListener(
 
@@ -2491,6 +2523,7 @@
 
         passive:
           false
+
       }
 
     );
@@ -2525,6 +2558,7 @@
 
         passive:
           true
+
       }
 
     );
@@ -2552,6 +2586,7 @@
 
         passive:
           true
+
       }
 
     );
@@ -2564,20 +2599,6 @@
     function stopIntroAndUnlock() {
 
       if (!isIntroActive) {
-
-        return;
-
-      }
-
-
-      /*
-       * ONLY Ühis1 can be interrupted.
-       */
-
-      if (
-        currentPanorama !==
-        'Ühis1.jpg'
-      ) {
 
         return;
 
@@ -2614,17 +2635,6 @@
       }
 
 
-      /*
-       * Keep the exact camera position reached at the moment
-       * of the sixth interaction.
-       */
-
-      viewer.setOption(
-        'maxFov',
-        UHIS1_USER_MAX_FOV
-      );
-
-
       enableUserInteraction();
 
 
@@ -2644,6 +2654,72 @@
 
 
     /* ============================================================
+       ÜHIS1 INTERACTION COUNTER
+       ============================================================
+       *
+       * IMPORTANT:
+       *
+       * This function is used ONLY by the Ühis1 animation.
+       *
+       * It counts one interaction per pointer/touch completion.
+       *
+       * It does NOT count touchmove events.
+       *
+       * It does NOT exist in the other panorama animations.
+       */
+
+    function registerUhis1Interaction() {
+
+      if (!isIntroActive) {
+
+        return;
+
+      }
+
+
+      if (
+        currentPanorama !==
+        'Ühis1.jpg'
+      ) {
+
+        return;
+
+      }
+
+
+      if (uhis1UnlockReached) {
+
+        stopIntroAndUnlock();
+
+        return;
+
+      }
+
+
+      uhis1InteractionAttempts++;
+
+
+      if (
+
+        uhis1InteractionAttempts >=
+        UHIS1_UNLOCK_ATTEMPTS
+
+      ) {
+
+        uhis1UnlockReached =
+          true;
+
+
+        stopIntroAndUnlock();
+
+        return;
+
+      }
+
+    }
+
+
+    /* ============================================================
        INTRO BLOCKER POINTER
        ============================================================ */
 
@@ -2658,11 +2734,18 @@
       }
 
 
+      /*
+       * The blocker is intentionally only a sixth-interaction
+       * unlock mechanism for Ühis1.
+       *
+       * For every other panorama it simply blocks everything.
+       */
+
       introPointerDown =
         true;
 
 
-      introDragDetected =
+      introInteractionRegistered =
         false;
 
 
@@ -2678,6 +2761,17 @@
         'dragging'
       );
 
+
+      /*
+       * A pointerdown is NOT immediately counted.
+       *
+       * We wait for pointerup so a phone tap counts once.
+       */
+
+      event.preventDefault();
+
+      event.stopPropagation();
+
     }
 
 
@@ -2689,65 +2783,9 @@
 
         !isIntroActive ||
 
-        !introPointerDown ||
-
-        introDragDetected
+        !introPointerDown
 
       ) {
-
-        return;
-
-      }
-
-
-      const dx =
-        event.clientX -
-        introStartX;
-
-
-      const dy =
-        event.clientY -
-        introStartY;
-
-
-      const distance =
-        Math.sqrt(
-
-          dx * dx +
-          dy * dy
-
-        );
-
-
-      if (
-
-        distance <
-        DRAG_THRESHOLD
-
-      ) {
-
-        return;
-
-      }
-
-
-      introDragDetected =
-        true;
-
-
-      /*
-       * Every panorama except Ühis1 is permanently blocked
-       * for the entire intro animation.
-       */
-
-      if (
-        currentPanorama !==
-        'Ühis1.jpg'
-      ) {
-
-        event.preventDefault();
-
-        event.stopPropagation();
 
         return;
 
@@ -2755,42 +2793,24 @@
 
 
       /*
-       * Ühis1:
+       * Do NOT increment the counter here.
        *
-       * 1–5 = blocked
-       * 6   = stop intro + unlock
+       * Mobile browsers can produce many touchmove events for
+       * one physical gesture.
+       *
+       * The complete gesture is counted once on pointerup.
        */
-
-      uhis1InteractionAttempts++;
-
-
-      if (
-
-        uhis1InteractionAttempts <
-        INTRO_UNLOCK_ATTEMPTS
-
-      ) {
-
-        event.preventDefault();
-
-        event.stopPropagation();
-
-        return;
-
-      }
-
 
       event.preventDefault();
 
       event.stopPropagation();
 
-
-      stopIntroAndUnlock();
-
     }
 
 
-    function handleIntroPointerUp() {
+    function handleIntroPointerUp(
+      event
+    ) {
 
       if (!isIntroActive) {
 
@@ -2799,17 +2819,93 @@
       }
 
 
+      if (!introPointerDown) {
+
+        return;
+
+      }
+
+
+      if (introInteractionRegistered) {
+
+        return;
+
+      }
+
+
+      introInteractionRegistered =
+        true;
+
+
       introPointerDown =
-        false;
-
-
-      introDragDetected =
         false;
 
 
       blocker.classList.remove(
         'dragging'
       );
+
+
+      /*
+       * ONLY ÜHIS1 gets the six-interaction unlock.
+       *
+       * Every other intro stays blocked regardless of how many
+       * interactions occur.
+       */
+
+      if (
+
+        currentPanorama ===
+        'Ühis1.jpg'
+
+      ) {
+
+        registerUhis1Interaction();
+
+      }
+
+
+      /*
+       * The event is ALWAYS blocked while the intro is active
+       * unless registerUhis1Interaction() reaches #6 and calls
+       * stopIntroAndUnlock().
+       */
+
+      if (isIntroActive) {
+
+        event.preventDefault();
+
+        event.stopPropagation();
+
+      }
+
+    }
+
+
+    function handleIntroPointerCancel(
+      event
+    ) {
+
+      introPointerDown =
+        false;
+
+
+      introInteractionRegistered =
+        false;
+
+
+      blocker.classList.remove(
+        'dragging'
+      );
+
+
+      if (isIntroActive) {
+
+        event.preventDefault();
+
+        event.stopPropagation();
+
+      }
 
     }
 
@@ -2826,6 +2922,7 @@
 
         passive:
           false
+
       }
 
     );
@@ -2843,6 +2940,7 @@
 
         passive:
           false
+
       }
 
     );
@@ -2860,6 +2958,7 @@
 
         passive:
           false
+
       }
 
     );
@@ -2869,7 +2968,7 @@
 
       'pointercancel',
 
-      handleIntroPointerUp,
+      handleIntroPointerCancel,
 
       {
         capture:
@@ -2877,14 +2976,30 @@
 
         passive:
           false
+
       }
 
     );
 
 
     /* ============================================================
-       INTRO TOUCH
-       ============================================================ */
+       INTRO TOUCH FALLBACK
+       ============================================================
+       *
+       * Pointer Events normally cover modern phones.
+       *
+       * This explicit touch fallback is included so the blocker
+       * also works on browsers where pointer events behave
+       * differently.
+       */
+
+    let introTouchActive =
+      false;
+
+
+    let introTouchRegistered =
+      false;
+
 
     blocker.addEventListener(
 
@@ -2899,31 +3014,29 @@
         }
 
 
-        const touch =
-          event.touches[0];
-
-
-        if (!touch) {
+        if (introTouchActive) {
 
           return;
 
         }
 
 
-        introPointerDown =
+        introTouchActive =
           true;
 
 
-        introDragDetected =
+        introTouchRegistered =
           false;
 
 
-        introStartX =
-          touch.clientX;
+        blocker.classList.add(
+          'dragging'
+        );
 
 
-        introStartY =
-          touch.clientY;
+        event.preventDefault();
+
+        event.stopPropagation();
 
       },
 
@@ -2933,6 +3046,7 @@
 
         passive:
           false
+
       }
 
     );
@@ -2944,105 +3058,7 @@
 
       (event) => {
 
-        if (
-
-          !isIntroActive ||
-
-          !introPointerDown ||
-
-          introDragDetected
-
-        ) {
-
-          return;
-
-        }
-
-
-        const touch =
-          event.touches[0];
-
-
-        if (!touch) {
-
-          return;
-
-        }
-
-
-        const dx =
-          touch.clientX -
-          introStartX;
-
-
-        const dy =
-          touch.clientY -
-          introStartY;
-
-
-        const distance =
-          Math.sqrt(
-
-            dx * dx +
-            dy * dy
-
-          );
-
-
-        if (
-
-          distance <
-          DRAG_THRESHOLD
-
-        ) {
-
-          return;
-
-        }
-
-
-        introDragDetected =
-          true;
-
-
-        /*
-         * Every panorama except Ühis1 is permanently blocked.
-         */
-
-        if (
-          currentPanorama !==
-          'Ühis1.jpg'
-        ) {
-
-          event.preventDefault();
-
-          event.stopPropagation();
-
-          return;
-
-        }
-
-
-        /*
-         * Ühis1:
-         *
-         * 1–5 = blocked
-         * 6   = stop intro + unlock
-         */
-
-        uhis1InteractionAttempts++;
-
-
-        if (
-
-          uhis1InteractionAttempts <
-          INTRO_UNLOCK_ATTEMPTS
-
-        ) {
-
-          event.preventDefault();
-
-          event.stopPropagation();
+        if (!isIntroActive) {
 
           return;
 
@@ -3053,9 +3069,6 @@
 
         event.stopPropagation();
 
-
-        stopIntroAndUnlock();
-
       },
 
       {
@@ -3064,6 +3077,7 @@
 
         passive:
           false
+
       }
 
     );
@@ -3073,7 +3087,63 @@
 
       'touchend',
 
-      handleIntroPointerUp,
+      (event) => {
+
+        if (!isIntroActive) {
+
+          return;
+
+        }
+
+
+        if (!introTouchActive) {
+
+          return;
+
+        }
+
+
+        if (introTouchRegistered) {
+
+          return;
+
+        }
+
+
+        introTouchRegistered =
+          true;
+
+
+        introTouchActive =
+          false;
+
+
+        blocker.classList.remove(
+          'dragging'
+        );
+
+
+        if (
+
+          currentPanorama ===
+          'Ühis1.jpg'
+
+        ) {
+
+          registerUhis1Interaction();
+
+        }
+
+
+        if (isIntroActive) {
+
+          event.preventDefault();
+
+          event.stopPropagation();
+
+        }
+
+      },
 
       {
         capture:
@@ -3081,6 +3151,48 @@
 
         passive:
           false
+
+      }
+
+    );
+
+
+    blocker.addEventListener(
+
+      'touchcancel',
+
+      (event) => {
+
+        introTouchActive =
+          false;
+
+
+        introTouchRegistered =
+          false;
+
+
+        blocker.classList.remove(
+          'dragging'
+        );
+
+
+        if (isIntroActive) {
+
+          event.preventDefault();
+
+          event.stopPropagation();
+
+        }
+
+      },
+
+      {
+        capture:
+          true,
+
+        passive:
+          false
+
       }
 
     );
@@ -3440,15 +3552,6 @@
       generation
     ) {
 
-      /*
-       * Every new Ühis1 intro starts a fresh six-interaction
-       * sequence.
-       */
-
-      uhis1InteractionAttempts =
-        0;
-
-
       isUserInterfered =
         false;
 
@@ -3478,6 +3581,29 @@
 
 
       setRendererBackground();
+
+
+      /*
+       * If the sixth interaction has already happened during an
+       * earlier Ühis1 animation, do NOT reset the counter.
+       *
+       * The animation still starts normally, but the blocker is
+       * not allowed to restart the six-interaction requirement.
+       */
+
+      if (uhis1UnlockReached) {
+
+        /*
+         * We deliberately do not immediately stop the animation.
+         *
+         * Selecting Ühis1 again starts its animation normally.
+         *
+         * The blocker remains present visually, but the first
+         * interaction will unlock it because the sixth-interaction
+         * requirement has already been permanently satisfied.
+         */
+
+      }
 
 
       const tStage0 =
@@ -4510,6 +4636,10 @@
           true;
 
 
+        currentPanorama =
+          'Ühis1.jpg';
+
+
         viewer.container.classList.add(
           'switching'
         );
@@ -4561,6 +4691,7 @@
       {
         once:
           true
+
       }
 
     );
@@ -4645,21 +4776,36 @@
 
 
             /*
-             * Every new panorama intro starts blocked.
-             * Only Ühis1 has the six-interaction escape.
+             * Reset only the per-gesture state.
+             *
+             * DO NOT reset:
+             *
+             *   uhis1InteractionAttempts
+             *   uhis1UnlockReached
+             *
+             * Therefore selecting Ühis1 again does not reset the
+             * sixth-interaction progression.
              */
-
-            blocker.classList.remove(
-              'unlocked'
-            );
-
 
             introPointerDown =
               false;
 
 
-            introDragDetected =
+            introInteractionRegistered =
               false;
+
+
+            introTouchActive =
+              false;
+
+
+            introTouchRegistered =
+              false;
+
+
+            blocker.classList.remove(
+              'dragging'
+            );
 
 
             hideFinishedUI();
@@ -4680,6 +4826,10 @@
                 'Ühis1.jpg'
 
               ) {
+
+                currentPanorama =
+                  'Ühis1.jpg';
+
 
                 viewer.setOption(
                   'maxFov',
@@ -4898,6 +5048,10 @@
               }
 
 
+              currentPanorama =
+                panorama;
+
+
               setIntroCamera(
                 panorama
               );
@@ -5017,6 +5171,7 @@
 
         passive:
           true
+
       }
 
     );
@@ -5038,6 +5193,7 @@
 
         passive:
           true
+
       }
 
     );
@@ -5059,6 +5215,73 @@
 
         passive:
           true
+
+      }
+
+    );
+
+
+    locationButtons.addEventListener(
+
+      'touchstart',
+
+      (event) => {
+
+        event.stopPropagation();
+
+      },
+
+      {
+        capture:
+          true,
+
+        passive:
+          true
+
+      }
+
+    );
+
+
+    locationButtons.addEventListener(
+
+      'touchmove',
+
+      (event) => {
+
+        event.stopPropagation();
+
+      },
+
+      {
+        capture:
+          true,
+
+        passive:
+          true
+
+      }
+
+    );
+
+
+    locationButtons.addEventListener(
+
+      'touchend',
+
+      (event) => {
+
+        event.stopPropagation();
+
+      },
+
+      {
+        capture:
+          true,
+
+        passive:
+          true
+
       }
 
     );
