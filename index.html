@@ -463,17 +463,6 @@
 
       #location-buttons {
 
-        /*
-         * 55px x 5 = 275px.
-         *
-         * The gap is reduced gradually on narrower screens,
-         * but never below 12px.
-         *
-         * This keeps a clearly visible distance between buttons
-         * while preventing the group from running outside the
-         * screen.
-         */
-
         gap:
           clamp(
             12px,
@@ -1247,15 +1236,17 @@
 
 
     /*
-     * IMPORTANT:
+     * ÜHIS1 ONLY:
      *
-     * This is ONLY for the very first page-load intro.
+     * During each Ühis1 intro:
      *
-     * It is deliberately NOT reset when another panorama
-     * is selected.
+     *   interactions 1–5 = blocked
+     *   interaction 6     = stop intro + unlock
+     *
+     * Other panorama intros never use this counter.
      */
 
-    let introInteractionAttempts =
+    let uhis1InteractionAttempts =
       0;
 
 
@@ -1304,8 +1295,7 @@
 
 
     /*
-     * The 5-attempt blocker is only used during the
-     * first page-load intro.
+     * Only Ühis1 uses the six-interaction unlock.
      */
 
     const INTRO_UNLOCK_ATTEMPTS =
@@ -1443,15 +1433,6 @@
         0
       );
 
-
-    /*
-     * Only touch/pinch zoom is slowed.
-     *
-     * The panorama intro animations are NOT modified.
-     *
-     * 0.45 means the user's pinch movement produces roughly
-     * 45% of the normal zoom response.
-     */
 
     const PHONE_ZOOM_RESPONSE =
       0.45;
@@ -2328,10 +2309,6 @@
           touch.clientY;
 
 
-        /*
-         * Reset pinch tracking whenever a new touch begins.
-         */
-
         if (
           event.touches.length >= 2
         ) {
@@ -2382,13 +2359,6 @@
 
     );
 
-
-    /*
-     * PHONE PINCH ZOOM
-     *
-     * This does not alter any intro animation.
-     * It only reduces the response of a two-finger pinch.
-     */
 
     viewer.container.addEventListener(
 
@@ -2469,13 +2439,6 @@
           lastTouchDistance;
 
 
-        /*
-         * Compress the pinch movement.
-         *
-         * Positive delta = fingers moving apart = zoom in.
-         * Negative delta = fingers moving together = zoom out.
-         */
-
         const zoomDelta =
 
           distanceDelta *
@@ -2500,11 +2463,6 @@
 
           );
 
-
-        /*
-         * Prevent the built-in touch zoom from applying the
-         * full raw pinch movement as well.
-         */
 
         event.preventDefault();
 
@@ -2612,6 +2570,20 @@
       }
 
 
+      /*
+       * ONLY Ühis1 can be interrupted.
+       */
+
+      if (
+        currentPanorama !==
+        'Ühis1.jpg'
+      ) {
+
+        return;
+
+      }
+
+
       isIntroActive =
         false;
 
@@ -2640,6 +2612,17 @@
           null;
 
       }
+
+
+      /*
+       * Keep the exact camera position reached at the moment
+       * of the sixth interaction.
+       */
+
+      viewer.setOption(
+        'maxFov',
+        UHIS1_USER_MAX_FOV
+      );
 
 
       enableUserInteraction();
@@ -2753,20 +2736,37 @@
 
 
       /*
-       * IMPORTANT:
-       *
-       * The counter is ONLY checked while the very first
-       * intro blocker is active.
-       *
-       * Panorama button animations never call this logic.
+       * Every panorama except Ühis1 is permanently blocked
+       * for the entire intro animation.
        */
 
-      introInteractionAttempts++;
+      if (
+        currentPanorama !==
+        'Ühis1.jpg'
+      ) {
+
+        event.preventDefault();
+
+        event.stopPropagation();
+
+        return;
+
+      }
+
+
+      /*
+       * Ühis1:
+       *
+       * 1–5 = blocked
+       * 6   = stop intro + unlock
+       */
+
+      uhis1InteractionAttempts++;
 
 
       if (
 
-        introInteractionAttempts <
+        uhis1InteractionAttempts <
         INTRO_UNLOCK_ATTEMPTS
 
       ) {
@@ -2778,6 +2778,11 @@
         return;
 
       }
+
+
+      event.preventDefault();
+
+      event.stopPropagation();
 
 
       stopIntroAndUnlock();
@@ -3000,12 +3005,37 @@
           true;
 
 
-        introInteractionAttempts++;
+        /*
+         * Every panorama except Ühis1 is permanently blocked.
+         */
+
+        if (
+          currentPanorama !==
+          'Ühis1.jpg'
+        ) {
+
+          event.preventDefault();
+
+          event.stopPropagation();
+
+          return;
+
+        }
+
+
+        /*
+         * Ühis1:
+         *
+         * 1–5 = blocked
+         * 6   = stop intro + unlock
+         */
+
+        uhis1InteractionAttempts++;
 
 
         if (
 
-          introInteractionAttempts <
+          uhis1InteractionAttempts <
           INTRO_UNLOCK_ATTEMPTS
 
         ) {
@@ -3017,6 +3047,11 @@
           return;
 
         }
+
+
+        event.preventDefault();
+
+        event.stopPropagation();
 
 
         stopIntroAndUnlock();
@@ -3404,6 +3439,15 @@
     function runUhis1SpecialAnimation(
       generation
     ) {
+
+      /*
+       * Every new Ühis1 intro starts a fresh six-interaction
+       * sequence.
+       */
+
+      uhis1InteractionAttempts =
+        0;
+
 
       isUserInterfered =
         false;
@@ -4600,27 +4644,28 @@
               true;
 
 
+            /*
+             * Every new panorama intro starts blocked.
+             * Only Ühis1 has the six-interaction escape.
+             */
+
+            blocker.classList.remove(
+              'unlocked'
+            );
+
+
+            introPointerDown =
+              false;
+
+
+            introDragDetected =
+              false;
+
+
             hideFinishedUI();
 
 
             disableUserInteraction();
-
-
-            /*
-             * IMPORTANT:
-             *
-             * We intentionally DO NOT reset:
-             *
-             * introInteractionAttempts
-             *
-             * here.
-             *
-             * The 5/6-drag unlock belongs only to the initial
-             * page-load blocker.
-             *
-             * Buttons switch panoramas without triggering that
-             * blocker again.
-             */
 
 
             try {
