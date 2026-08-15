@@ -36,16 +36,6 @@
 
       background:
         #f5fafe !important;
-
-      overscroll-behavior:
-        none;
-
-      -webkit-user-select:
-        none;
-
-      user-select:
-        none;
-
     }
 
 
@@ -55,14 +45,10 @@
 
     #viewer {
 
-      position:
-        relative;
+      position: relative;
 
-      width:
-        100vw;
-
-      height:
-        100vh;
+      width: 100vw;
+      height: 100vh;
 
       background:
         #f5fafe !important;
@@ -72,10 +58,6 @@
 
       transition:
         opacity 0.28s ease;
-
-      touch-action:
-        none;
-
     }
 
 
@@ -83,7 +65,6 @@
 
       opacity:
         0;
-
     }
 
 
@@ -91,15 +72,13 @@
 
       opacity:
         1;
-
     }
 
 
     #viewer.switching {
 
       visibility:
-        visible;
-
+        hidden;
     }
 
 
@@ -110,7 +89,6 @@
 
       background:
         #f5fafe !important;
-
     }
 
 
@@ -119,7 +97,6 @@
 
       display:
         none !important;
-
     }
 
 
@@ -162,7 +139,6 @@
       transition:
         opacity 0.18s ease,
         visibility 0s linear 0s;
-
     }
 
 
@@ -180,7 +156,6 @@
       transition:
         opacity 0.18s ease,
         visibility 0s linear 0.18s;
-
     }
 
 
@@ -216,7 +191,6 @@
         0.72s
         linear
         infinite;
-
     }
 
 
@@ -235,7 +209,7 @@
 
 
     /* ============================================================
-       5-INTERACTION BLOCKER
+       INTRO BLOCKER
        ============================================================ */
 
     #interaction-blocker {
@@ -253,20 +227,10 @@
         auto;
 
       cursor:
-        pointer;
+        grab;
 
       touch-action:
         none;
-
-      -webkit-user-select:
-        none;
-
-      user-select:
-        none;
-
-      -webkit-tap-highlight-color:
-        transparent;
-
     }
 
 
@@ -274,22 +238,13 @@
 
       cursor:
         grabbing;
-
     }
 
-
-    /*
-     * The blocker is intentionally NOT permanently unlocked.
-     *
-     * Every new panorama animation receives a fresh five-
-     * interaction gate.
-     */
 
     #interaction-blocker.unlocked {
 
       display:
         none;
-
     }
 
 
@@ -324,19 +279,16 @@
         center;
 
       gap:
-        clamp(
-          11px,
-          4.8vw,
-          30px
-        );
+        30px;
 
       width:
         max-content;
 
       max-width:
-        calc(
-          100vw - 18px
-        );
+        calc(100vw - 24px);
+
+      box-sizing:
+        border-box;
 
       opacity:
         0;
@@ -350,7 +302,6 @@
       transition:
         opacity 0.35s ease,
         visibility 0s linear 0.35s;
-
     }
 
 
@@ -368,7 +319,6 @@
       transition:
         opacity 0.35s ease,
         visibility 0s linear 0s;
-
     }
 
 
@@ -378,25 +328,13 @@
         relative;
 
       width:
-        clamp(
-          47px,
-          14.67vw,
-          55px
-        );
+        55px;
 
       height:
-        clamp(
-          47px,
-          14.67vw,
-          55px
-        );
+        55px;
 
       flex:
-        0 0 clamp(
-          47px,
-          14.67vw,
-          55px
-        );
+        0 0 55px;
 
       padding:
         0;
@@ -472,7 +410,6 @@
         box-shadow 0.16s ease,
 
         opacity 0.16s ease;
-
     }
 
 
@@ -503,7 +440,6 @@
 
       transition:
         background 0.16s ease;
-
     }
 
 
@@ -516,6 +452,60 @@
           0,
           0
         );
+    }
+
+
+    /* ============================================================
+       PHONE BUTTON SPACING
+       ============================================================ */
+
+    @media (max-width: 600px) {
+
+      #location-buttons {
+
+        /*
+         * 55px x 5 = 275px.
+         *
+         * The gap is reduced gradually on narrower screens,
+         * but never below 12px.
+         *
+         * This keeps a clearly visible distance between buttons
+         * while preventing the group from running outside the
+         * screen.
+         */
+
+        gap:
+          clamp(
+            12px,
+            calc(
+              (
+                100vw -
+                24px -
+                275px
+              ) / 4
+            ),
+            24px
+          );
+
+        max-width:
+          calc(100vw - 24px);
+
+      }
+
+    }
+
+
+    @media (max-width: 360px) {
+
+      #location-buttons {
+
+        gap:
+          10px;
+
+        max-width:
+          calc(100vw - 16px);
+
+      }
 
     }
 
@@ -528,7 +518,6 @@
 
       background-image:
         url("group-circle.jpg");
-
     }
 
 
@@ -536,7 +525,6 @@
 
       background-image:
         url("lighthouse.jpeg");
-
     }
 
 
@@ -544,7 +532,6 @@
 
       background-image:
         url("sunset.jpeg");
-
     }
 
 
@@ -552,7 +539,6 @@
 
       background-image:
         url("wooden-house.jpeg");
-
     }
 
 
@@ -560,7 +546,6 @@
 
       background-image:
         url("church.jpeg");
-
     }
 
 
@@ -590,7 +575,6 @@
 
       transform:
         scale(1.08);
-
     }
 
 
@@ -598,7 +582,6 @@
 
       transform:
         scale(1.13);
-
     }
 
 
@@ -628,7 +611,6 @@
           255,
           0.22
         );
-
     }
 
 
@@ -636,7 +618,6 @@
 
       transform:
         scale(0.94);
-
     }
 
 
@@ -652,7 +633,6 @@
 
       outline-offset:
         2px;
-
     }
 
 
@@ -701,7 +681,6 @@
           0.2,
           1
         );
-
     }
 
 
@@ -709,7 +688,6 @@
 
       opacity:
         0.95;
-
     }
 
 
@@ -736,7 +714,6 @@
             0.7
           )
         );
-
     }
 
 
@@ -770,7 +747,6 @@
           0.6,
           1
         );
-
     }
 
 
@@ -804,7 +780,6 @@
           0.6,
           1
         );
-
     }
 
 
@@ -841,7 +816,6 @@
 
       animation-delay:
         0.85s;
-
     }
 
 
@@ -878,7 +852,6 @@
 
       animation-delay:
         0.85s;
-
     }
 
 
@@ -940,7 +913,6 @@
         2.2s
         infinite
         ease-in-out;
-
     }
 
 
@@ -977,7 +949,6 @@
 
       border-radius:
         2px;
-
     }
 
 
@@ -1000,7 +971,6 @@
         2.2s
         infinite
         ease-in-out;
-
     }
 
 
@@ -1015,16 +985,13 @@
 
         opacity:
           0.25;
-
       }
 
       50% {
 
         opacity:
           1;
-
       }
-
     }
 
 
@@ -1035,16 +1002,13 @@
 
         opacity:
           0.25;
-
       }
 
       50% {
 
         opacity:
           1;
-
       }
-
     }
 
 
@@ -1062,7 +1026,6 @@
 
         opacity:
           0.3;
-
       }
 
       50% {
@@ -1076,9 +1039,7 @@
 
         opacity:
           1;
-
       }
-
     }
 
 
@@ -1092,7 +1053,6 @@
 
         opacity:
           0.4;
-
       }
 
       50% {
@@ -1102,63 +1062,7 @@
 
         opacity:
           1;
-
       }
-
-    }
-
-
-    /* ============================================================
-       PHONE BUTTON FIT
-       ============================================================ */
-
-    @media (max-width: 420px) {
-
-      #location-buttons {
-
-        bottom:
-          20px;
-
-        gap:
-          clamp(
-            10px,
-            4vw,
-            18px
-          );
-
-        max-width:
-          calc(
-            100vw - 12px
-          );
-
-      }
-
-    }
-
-
-    @media (max-width: 350px) {
-
-      #location-buttons {
-
-        gap:
-          9px;
-
-      }
-
-
-      .location-button {
-
-        width:
-          46px;
-
-        height:
-          46px;
-
-        flex-basis:
-          46px;
-
-      }
-
     }
 
   </style>
@@ -1182,26 +1086,6 @@
 
   <div id="viewer"></div>
 
-
-  <!--
-    IMPORTANT:
-    This blocker is reused for EVERY panorama animation.
-
-    It is reset to five interactions whenever a new panorama
-    animation starts.
-
-    Until the fifth interaction:
-      - panorama animation continues;
-      - dragging is blocked;
-      - pinch zoom is blocked;
-      - mouse wheel zoom is blocked;
-      - the animation cannot be interrupted.
-
-    On the fifth interaction:
-      - the blocker disappears;
-      - the animation stops immediately;
-      - normal mouse/touch/zoom interaction becomes available.
-  -->
 
   <div id="interaction-blocker"></div>
 
@@ -1289,7 +1173,6 @@
 
         START_YAW:
           -60
-
       },
 
 
@@ -1297,7 +1180,6 @@
 
         START_YAW:
           300
-
       },
 
 
@@ -1305,7 +1187,6 @@
 
         START_YAW:
           120
-
       },
 
 
@@ -1313,7 +1194,6 @@
 
         START_YAW:
           120
-
       },
 
 
@@ -1321,7 +1201,6 @@
 
         START_YAW:
           0
-
       }
 
     };
@@ -1368,33 +1247,16 @@
 
 
     /*
-     * THIS IS THE IMPORTANT CHANGE.
+     * IMPORTANT:
      *
-     * The five-interaction counter belongs to the CURRENT
-     * animation, not to the entire page session.
+     * This is ONLY for the very first page-load intro.
      *
-     * Therefore every image gets its own five-interaction gate.
+     * It is deliberately NOT reset when another panorama
+     * is selected.
      */
 
-    let interactionCount =
+    let introInteractionAttempts =
       0;
-
-
-    let interactionPointerActive =
-      false;
-
-
-    let interactionGestureStarted =
-      false;
-
-
-    /*
-     * Prevents two simultaneous phone pointers from being
-     * interpreted as two separate interactions.
-     */
-
-    let interactionPrimaryPointerId =
-      null;
 
 
     let isFirstPageLoad =
@@ -1402,8 +1264,24 @@
 
 
     /* ============================================================
-       POINTER STATE AFTER UNLOCK
+       POINTER STATE
        ============================================================ */
+
+    let introPointerDown =
+      false;
+
+
+    let introDragDetected =
+      false;
+
+
+    let introStartX =
+      0;
+
+
+    let introStartY =
+      0;
+
 
     let isPointerDown =
       false;
@@ -1426,13 +1304,12 @@
 
 
     /*
-     * Exactly five interactions are required.
-     *
-     * The fifth interaction stops the current animation.
+     * The 5-attempt blocker is only used during the
+     * first page-load intro.
      */
 
-    const REQUIRED_INTERACTIONS =
-      5;
+    const INTRO_UNLOCK_ATTEMPTS =
+      6;
 
 
     /* ============================================================
@@ -1552,22 +1429,44 @@
 
 
     /* ============================================================
-       ZOOM SENSITIVITY
+       PHONE ZOOM
        ============================================================ */
 
-    const DESKTOP_ZOOM_SPEED =
-      1;
+    const IS_TOUCH_DEVICE =
+
+      (
+        'ontouchstart' in window
+      ) ||
+
+      (
+        navigator.maxTouchPoints >
+        0
+      );
 
 
     /*
-     * Reduced further on phones.
+     * Only touch/pinch zoom is slowed.
      *
-     * This affects USER zoom only.
-     * Programmatic animation zoom remains unchanged.
+     * The panorama intro animations are NOT modified.
+     *
+     * 0.45 means the user's pinch movement produces roughly
+     * 45% of the normal zoom response.
      */
 
-    const PHONE_ZOOM_SPEED =
-      0.32;
+    const PHONE_ZOOM_RESPONSE =
+      0.45;
+
+
+    let lastTouchDistance =
+      null;
+
+
+    let touchZoomLevel =
+      null;
+
+
+    let applyingTouchZoom =
+      false;
 
 
     /* ============================================================
@@ -1622,23 +1521,6 @@
 
 
     /* ============================================================
-       PHONE DETECTION
-       ============================================================ */
-
-    function isPhoneDevice() {
-
-      return (
-
-        window.matchMedia(
-          '(max-width: 768px)'
-        ).matches
-
-      );
-
-    }
-
-
-    /* ============================================================
        VIEWER
        ============================================================ */
 
@@ -1684,13 +1566,6 @@
         moveInertia:
           false,
 
-        zoomSpeed:
-          isPhoneDevice()
-            ?
-            PHONE_ZOOM_SPEED
-            :
-            DESKTOP_ZOOM_SPEED,
-
         defaultTransition: {
 
           speed:
@@ -1701,45 +1576,9 @@
 
           effect:
             'black'
-
         }
 
       });
-
-
-    /* ============================================================
-       ZOOM SPEED
-       ============================================================ */
-
-    function updateZoomSensitivity() {
-
-      viewer.setOption(
-
-        'zoomSpeed',
-
-        isPhoneDevice()
-          ?
-          PHONE_ZOOM_SPEED
-          :
-          DESKTOP_ZOOM_SPEED
-
-      );
-
-    }
-
-
-    window.addEventListener(
-
-      'resize',
-
-      updateZoomSensitivity,
-
-      {
-        passive:
-          true
-      }
-
-    );
 
 
     /* ============================================================
@@ -1776,9 +1615,7 @@
 
       catch (error) {
 
-        /*
-         * Intentionally ignored.
-         */
+        // Intentionally ignored.
 
       }
 
@@ -1789,196 +1626,7 @@
 
 
     /* ============================================================
-       PANORAMA PRELOAD / DECODE
-       ============================================================ */
-
-    const panoramaPreloadCache =
-      new Map();
-
-
-    function preloadPanorama(
-      panorama
-    ) {
-
-      if (
-        panoramaPreloadCache.has(
-          panorama
-        )
-      ) {
-
-        return panoramaPreloadCache.get(
-          panorama
-        );
-
-      }
-
-
-      const promise =
-        new Promise(
-          (resolve) => {
-
-            const image =
-              new Image();
-
-
-            image.decoding =
-              'async';
-
-
-            image.onload =
-              async () => {
-
-                try {
-
-                  if (
-                    typeof image.decode ===
-                    'function'
-                  ) {
-
-                    await image.decode();
-
-                  }
-
-                }
-
-                catch (error) {
-
-                  /*
-                   * The image is still usable if decode()
-                   * rejects after load.
-                   */
-
-                }
-
-
-                resolve(
-                  image
-                );
-
-              };
-
-
-            image.onerror =
-              () => {
-
-                resolve(
-                  null
-                );
-
-              };
-
-
-            image.src =
-              panorama;
-
-          }
-
-        );
-
-
-      panoramaPreloadCache.set(
-        panorama,
-        promise
-      );
-
-
-      return promise;
-
-    }
-
-
-    Object.keys(
-      PANORAMAS
-    ).forEach(
-
-      (panorama) => {
-
-        preloadPanorama(
-          panorama
-        );
-
-      }
-
-    );
-
-
-    /* ============================================================
-       IMAGE READY FRAME SYNCHRONIZATION
-       ============================================================ */
-
-    /*
-     * Pre-decoding prevents network/decode races.
-     *
-     * This function then gives Three.js/Photo Sphere Viewer
-     * enough render opportunities for the newly uploaded texture
-     * to become complete before the animation clock starts.
-     *
-     * It is intentionally short: there is no artificial
-     * multi-second delay.
-     */
-
-    async function waitForTextureRender(
-      generation
-    ) {
-
-      if (
-        generation !==
-        animationGeneration
-      ) {
-
-        return false;
-
-      }
-
-
-      await new Promise(
-
-        (resolve) => {
-
-          requestAnimationFrame(
-            resolve
-          );
-
-        }
-
-      );
-
-
-      if (
-        generation !==
-        animationGeneration
-      ) {
-
-        return false;
-
-      }
-
-
-      await new Promise(
-
-        (resolve) => {
-
-          requestAnimationFrame(
-            resolve
-          );
-
-        }
-
-      );
-
-
-      return (
-
-        generation ===
-        animationGeneration
-
-      );
-
-    }
-
-
-    /* ============================================================
-       FIRST LOAD
+       FIRST LOAD VISUAL START
        ============================================================ */
 
     function revealFirstPanorama() {
@@ -2023,9 +1671,7 @@
        EASING
        ============================================================ */
 
-    function smootherStep(
-      t
-    ) {
+    function smootherStep(t) {
 
       return (
 
@@ -2060,9 +1706,7 @@
     }
 
 
-    function easeOutCubic(
-      t
-    ) {
+    function easeOutCubic(t) {
 
       return (
 
@@ -2078,9 +1722,7 @@
     }
 
 
-    function easeInOutSine(
-      t
-    ) {
+    function easeInOutSine(t) {
 
       return -(
 
@@ -2093,9 +1735,7 @@
     }
 
 
-    function easeInOutCubic(
-      t
-    ) {
+    function easeInOutCubic(t) {
 
       return (
 
@@ -2122,9 +1762,7 @@
     }
 
 
-    function easeInOutQuint(
-      t
-    ) {
+    function easeInOutQuint(t) {
 
       return (
 
@@ -2153,9 +1791,7 @@
     }
 
 
-    function easeOutSeptic(
-      t
-    ) {
+    function easeOutSeptic(t) {
 
       return (
 
@@ -2339,7 +1975,6 @@
     ) {
 
       locationButtonElements.forEach(
-
         (button) => {
 
           button.classList.toggle(
@@ -2352,7 +1987,6 @@
           );
 
         }
-
       );
 
     }
@@ -2396,513 +2030,7 @@
 
 
     /* ============================================================
-       FIVE-INTERACTION GATE
-       ============================================================ */
-
-    function resetInteractionGate() {
-
-      /*
-       * This is called at the START of EVERY panorama animation.
-       */
-
-      interactionCount =
-        0;
-
-
-      interactionPointerActive =
-        false;
-
-
-      interactionGestureStarted =
-        false;
-
-
-      interactionPrimaryPointerId =
-        null;
-
-
-      blocker.classList.remove(
-        'unlocked'
-      );
-
-
-      blocker.classList.remove(
-        'dragging'
-      );
-
-    }
-
-
-    function unlockCurrentAnimation() {
-
-      if (!isIntroActive) {
-
-        return;
-
-      }
-
-
-      if (
-        interactionCount <
-        REQUIRED_INTERACTIONS
-      ) {
-
-        return;
-
-      }
-
-
-      /*
-       * Fifth interaction:
-       *
-       * 1. stop animation
-       * 2. permanently unlock ONLY the current animation
-       * 3. enable real viewer interaction
-       *
-       * The gate will be reset when another panorama starts.
-       */
-
-      isIntroActive =
-        false;
-
-
-      isAutoRotationActive =
-        false;
-
-
-      isUserInterfered =
-        true;
-
-
-      animationGeneration++;
-
-
-      if (
-        animFrameId !== null
-      ) {
-
-        cancelAnimationFrame(
-          animFrameId
-        );
-
-        animFrameId =
-          null;
-
-      }
-
-
-      enableUserInteraction();
-
-
-      blocker.classList.add(
-        'unlocked'
-      );
-
-
-      hideInteractionGuides();
-
-
-      locationButtons.classList.add(
-        'visible'
-      );
-
-
-      viewer.container.classList.remove(
-        'switching'
-      );
-
-    }
-
-
-    function registerBlockedInteraction() {
-
-      if (!isIntroActive) {
-
-        return;
-
-      }
-
-
-      if (
-        interactionCount >=
-        REQUIRED_INTERACTIONS
-      ) {
-
-        return;
-
-      }
-
-
-      interactionCount++;
-
-
-      /*
-       * Do NOT enable any viewer interaction for interactions
-       * 1-4.
-       *
-       * The viewer remains completely shielded.
-       */
-
-      if (
-        interactionCount >=
-        REQUIRED_INTERACTIONS
-      ) {
-
-        unlockCurrentAnimation();
-
-      }
-
-    }
-
-
-    /* ============================================================
-       BLOCKER POINTER EVENTS
-       ============================================================ */
-
-    function handleBlockerPointerDown(
-      event
-    ) {
-
-      if (!isIntroActive) {
-
-        return;
-
-      }
-
-
-      event.preventDefault();
-      event.stopPropagation();
-
-
-      /*
-       * Ignore secondary mouse buttons.
-       */
-
-      if (
-        event.pointerType ===
-          'mouse' &&
-        event.button !==
-          0
-      ) {
-
-        return;
-
-      }
-
-
-      /*
-       * A multi-touch gesture is ONE interaction, not two.
-       */
-
-      if (
-        interactionPointerActive
-      ) {
-
-        return;
-
-      }
-
-
-      interactionPointerActive =
-        true;
-
-
-      interactionGestureStarted =
-        true;
-
-
-      interactionPrimaryPointerId =
-        event.pointerId;
-
-
-      blocker.classList.add(
-        'dragging'
-      );
-
-
-      /*
-       * Count on DOWN rather than MOVE.
-       *
-       * This makes five taps/interactions reliable on phones.
-       * It also means a gesture cannot accidentally fail to count
-       * because the finger did not move far enough.
-       */
-
-      registerBlockedInteraction();
-
-    }
-
-
-    function handleBlockerPointerMove(
-      event
-    ) {
-
-      if (!isIntroActive) {
-
-        return;
-
-      }
-
-
-      event.preventDefault();
-      event.stopPropagation();
-
-    }
-
-
-    function handleBlockerPointerUp(
-      event
-    ) {
-
-      event.preventDefault();
-      event.stopPropagation();
-
-
-      if (
-        event.pointerId ===
-        interactionPrimaryPointerId
-      ) {
-
-        interactionPointerActive =
-          false;
-
-
-        interactionGestureStarted =
-          false;
-
-
-        interactionPrimaryPointerId =
-          null;
-
-
-        blocker.classList.remove(
-          'dragging'
-        );
-
-      }
-
-    }
-
-
-    blocker.addEventListener(
-
-      'pointerdown',
-
-      handleBlockerPointerDown,
-
-      {
-        capture:
-          true,
-
-        passive:
-          false
-
-      }
-
-    );
-
-
-    blocker.addEventListener(
-
-      'pointermove',
-
-      handleBlockerPointerMove,
-
-      {
-        capture:
-          true,
-
-        passive:
-          false
-
-      }
-
-    );
-
-
-    blocker.addEventListener(
-
-      'pointerup',
-
-      handleBlockerPointerUp,
-
-      {
-        capture:
-          true,
-
-        passive:
-          false
-
-      }
-
-    );
-
-
-    blocker.addEventListener(
-
-      'pointercancel',
-
-      handleBlockerPointerUp,
-
-      {
-        capture:
-          true,
-
-        passive:
-          false
-
-      }
-
-    );
-
-
-    blocker.addEventListener(
-
-      'pointerleave',
-
-      (event) => {
-
-        if (
-          interactionPrimaryPointerId ===
-          event.pointerId
-        ) {
-
-          interactionPointerActive =
-            false;
-
-
-          interactionGestureStarted =
-            false;
-
-
-          interactionPrimaryPointerId =
-            null;
-
-
-          blocker.classList.remove(
-            'dragging'
-          );
-
-        }
-
-      },
-
-      {
-        capture:
-          true,
-
-        passive:
-          false
-
-      }
-
-    );
-
-
-    /* ============================================================
-       EXTRA TOUCH PROTECTION
-       ============================================================ */
-
-    /*
-     * Pointer Events normally handle phones.
-     *
-     * These listeners are an additional protection for browsers
-     * where a touch event can otherwise reach the viewer during
-     * the gate.
-     */
-
-    blocker.addEventListener(
-
-      'touchstart',
-
-      (event) => {
-
-        if (!isIntroActive) {
-
-          return;
-
-        }
-
-
-        event.preventDefault();
-        event.stopPropagation();
-
-      },
-
-      {
-        capture:
-          true,
-
-        passive:
-          false
-
-      }
-
-    );
-
-
-    blocker.addEventListener(
-
-      'touchmove',
-
-      (event) => {
-
-        if (!isIntroActive) {
-
-          return;
-
-        }
-
-
-        event.preventDefault();
-        event.stopPropagation();
-
-      },
-
-      {
-        capture:
-          true,
-
-        passive:
-          false
-
-      }
-
-    );
-
-
-    blocker.addEventListener(
-
-      'touchend',
-
-      (event) => {
-
-        if (!isIntroActive) {
-
-          return;
-
-        }
-
-
-        event.preventDefault();
-        event.stopPropagation();
-
-      },
-
-      {
-        capture:
-          true,
-
-        passive:
-          false
-
-      }
-
-    );
-
-
-    /* ============================================================
-       USER INTERACTION
+       INTERACTION
        ============================================================ */
 
     function enableUserInteraction() {
@@ -2916,14 +2044,7 @@
           true,
 
         touchmove:
-          true,
-
-        zoomSpeed:
-          isPhoneDevice()
-            ?
-            PHONE_ZOOM_SPEED
-            :
-            DESKTOP_ZOOM_SPEED
+          true
 
       });
 
@@ -2937,12 +2058,6 @@
 
     function disableUserInteraction() {
 
-      /*
-       * During an animation the actual viewer is disabled.
-       *
-       * The blocker remains above it and captures all touch input.
-       */
-
       viewer.setOptions({
 
         mousemove:
@@ -2952,14 +2067,7 @@
           false,
 
         touchmove:
-          false,
-
-        zoomSpeed:
-          isPhoneDevice()
-            ?
-            PHONE_ZOOM_SPEED
-            :
-            DESKTOP_ZOOM_SPEED
+          false
 
       });
 
@@ -3120,7 +2228,6 @@
 
         passive:
           true
-
       }
 
     );
@@ -3138,7 +2245,6 @@
 
         passive:
           true
-
       }
 
     );
@@ -3156,7 +2262,6 @@
 
         passive:
           true
-
       }
 
     );
@@ -3174,7 +2279,6 @@
 
         passive:
           true
-
       }
 
     );
@@ -3223,6 +2327,49 @@
         pointerStartY =
           touch.clientY;
 
+
+        /*
+         * Reset pinch tracking whenever a new touch begins.
+         */
+
+        if (
+          event.touches.length >= 2
+        ) {
+
+          const a =
+            event.touches[0];
+
+          const b =
+            event.touches[1];
+
+
+          lastTouchDistance =
+            Math.hypot(
+
+              a.clientX -
+              b.clientX,
+
+              a.clientY -
+              b.clientY
+
+            );
+
+
+          touchZoomLevel =
+            viewer.getZoomLevel();
+
+        }
+
+        else {
+
+          lastTouchDistance =
+            null;
+
+          touchZoomLevel =
+            null;
+
+        }
+
       },
 
       {
@@ -3231,11 +2378,17 @@
 
         passive:
           true
-
       }
 
     );
 
+
+    /*
+     * PHONE PINCH ZOOM
+     *
+     * This does not alter any intro animation.
+     * It only reduces the response of a two-finger pinch.
+     */
 
     viewer.container.addEventListener(
 
@@ -3243,13 +2396,556 @@
 
       (event) => {
 
+        if (isIntroActive) {
+
+          return;
+
+        }
+
+
+        if (
+          event.touches.length < 2
+        ) {
+
+          return;
+
+        }
+
+
+        if (!IS_TOUCH_DEVICE) {
+
+          return;
+
+        }
+
+
+        const a =
+          event.touches[0];
+
+        const b =
+          event.touches[1];
+
+
+        const distance =
+          Math.hypot(
+
+            a.clientX -
+            b.clientX,
+
+            a.clientY -
+            b.clientY
+
+          );
+
+
+        if (
+          lastTouchDistance === null
+        ) {
+
+          lastTouchDistance =
+            distance;
+
+          touchZoomLevel =
+            viewer.getZoomLevel();
+
+          return;
+
+        }
+
+
+        if (
+          touchZoomLevel === null
+        ) {
+
+          touchZoomLevel =
+            viewer.getZoomLevel();
+
+        }
+
+
+        const distanceDelta =
+
+          distance -
+          lastTouchDistance;
+
+
+        /*
+         * Compress the pinch movement.
+         *
+         * Positive delta = fingers moving apart = zoom in.
+         * Negative delta = fingers moving together = zoom out.
+         */
+
+        const zoomDelta =
+
+          distanceDelta *
+          PHONE_ZOOM_RESPONSE *
+          0.05;
+
+
+        touchZoomLevel =
+
+          Math.max(
+
+            0,
+
+            Math.min(
+
+              viewer.getMaxZoomLevel(),
+
+              touchZoomLevel +
+              zoomDelta
+
+            )
+
+          );
+
+
+        /*
+         * Prevent the built-in touch zoom from applying the
+         * full raw pinch movement as well.
+         */
+
+        event.preventDefault();
+
+
+        applyingTouchZoom =
+          true;
+
+
+        viewer.zoom(
+          touchZoomLevel
+        );
+
+
+        applyingTouchZoom =
+          false;
+
+
+        lastTouchDistance =
+          distance;
+
+      },
+
+      {
+        capture:
+          true,
+
+        passive:
+          false
+      }
+
+    );
+
+
+    viewer.container.addEventListener(
+
+      'touchend',
+
+      (event) => {
+
+        if (
+          event.touches.length < 2
+        ) {
+
+          lastTouchDistance =
+            null;
+
+          touchZoomLevel =
+            null;
+
+        }
+
+
+        handlePostIntroPointerUp();
+
+      },
+
+      {
+        capture:
+          true,
+
+        passive:
+          true
+      }
+
+    );
+
+
+    viewer.container.addEventListener(
+
+      'touchcancel',
+
+      () => {
+
+        lastTouchDistance =
+          null;
+
+        touchZoomLevel =
+          null;
+
+        handlePostIntroPointerUp();
+
+      },
+
+      {
+        capture:
+          true,
+
+        passive:
+          true
+      }
+
+    );
+
+
+    /* ============================================================
+       STOP INTRO
+       ============================================================ */
+
+    function stopIntroAndUnlock() {
+
+      if (!isIntroActive) {
+
+        return;
+
+      }
+
+
+      isIntroActive =
+        false;
+
+
+      isUserInterfered =
+        true;
+
+
+      isAutoRotationActive =
+        false;
+
+
+      animationGeneration++;
+
+
+      if (
+        animFrameId !== null
+      ) {
+
+        cancelAnimationFrame(
+          animFrameId
+        );
+
+
+        animFrameId =
+          null;
+
+      }
+
+
+      enableUserInteraction();
+
+
+      hideInteractionGuides();
+
+
+      locationButtons.classList.add(
+        'visible'
+      );
+
+
+      viewer.container.classList.remove(
+        'switching'
+      );
+
+    }
+
+
+    /* ============================================================
+       INTRO BLOCKER POINTER
+       ============================================================ */
+
+    function handleIntroPointerDown(
+      event
+    ) {
+
+      if (!isIntroActive) {
+
+        return;
+
+      }
+
+
+      introPointerDown =
+        true;
+
+
+      introDragDetected =
+        false;
+
+
+      introStartX =
+        event.clientX;
+
+
+      introStartY =
+        event.clientY;
+
+
+      blocker.classList.add(
+        'dragging'
+      );
+
+    }
+
+
+    function handleIntroPointerMove(
+      event
+    ) {
+
+      if (
+
+        !isIntroActive ||
+
+        !introPointerDown ||
+
+        introDragDetected
+
+      ) {
+
+        return;
+
+      }
+
+
+      const dx =
+        event.clientX -
+        introStartX;
+
+
+      const dy =
+        event.clientY -
+        introStartY;
+
+
+      const distance =
+        Math.sqrt(
+
+          dx * dx +
+          dy * dy
+
+        );
+
+
+      if (
+
+        distance <
+        DRAG_THRESHOLD
+
+      ) {
+
+        return;
+
+      }
+
+
+      introDragDetected =
+        true;
+
+
+      /*
+       * IMPORTANT:
+       *
+       * The counter is ONLY checked while the very first
+       * intro blocker is active.
+       *
+       * Panorama button animations never call this logic.
+       */
+
+      introInteractionAttempts++;
+
+
+      if (
+
+        introInteractionAttempts <
+        INTRO_UNLOCK_ATTEMPTS
+
+      ) {
+
+        event.preventDefault();
+
+        event.stopPropagation();
+
+        return;
+
+      }
+
+
+      stopIntroAndUnlock();
+
+    }
+
+
+    function handleIntroPointerUp() {
+
+      if (!isIntroActive) {
+
+        return;
+
+      }
+
+
+      introPointerDown =
+        false;
+
+
+      introDragDetected =
+        false;
+
+
+      blocker.classList.remove(
+        'dragging'
+      );
+
+    }
+
+
+    blocker.addEventListener(
+
+      'pointerdown',
+
+      handleIntroPointerDown,
+
+      {
+        capture:
+          true,
+
+        passive:
+          false
+      }
+
+    );
+
+
+    blocker.addEventListener(
+
+      'pointermove',
+
+      handleIntroPointerMove,
+
+      {
+        capture:
+          true,
+
+        passive:
+          false
+      }
+
+    );
+
+
+    blocker.addEventListener(
+
+      'pointerup',
+
+      handleIntroPointerUp,
+
+      {
+        capture:
+          true,
+
+        passive:
+          false
+      }
+
+    );
+
+
+    blocker.addEventListener(
+
+      'pointercancel',
+
+      handleIntroPointerUp,
+
+      {
+        capture:
+          true,
+
+        passive:
+          false
+      }
+
+    );
+
+
+    /* ============================================================
+       INTRO TOUCH
+       ============================================================ */
+
+    blocker.addEventListener(
+
+      'touchstart',
+
+      (event) => {
+
+        if (!isIntroActive) {
+
+          return;
+
+        }
+
+
+        const touch =
+          event.touches[0];
+
+
+        if (!touch) {
+
+          return;
+
+        }
+
+
+        introPointerDown =
+          true;
+
+
+        introDragDetected =
+          false;
+
+
+        introStartX =
+          touch.clientX;
+
+
+        introStartY =
+          touch.clientY;
+
+      },
+
+      {
+        capture:
+          true,
+
+        passive:
+          false
+      }
+
+    );
+
+
+    blocker.addEventListener(
+
+      'touchmove',
+
+      (event) => {
+
         if (
 
-          isIntroActive ||
+          !isIntroActive ||
 
-          !isPointerDown ||
+          !introPointerDown ||
 
-          dragHasMoved
+          introDragDetected
 
         ) {
 
@@ -3271,12 +2967,12 @@
 
         const dx =
           touch.clientX -
-          pointerStartX;
+          introStartX;
 
 
         const dy =
           touch.clientY -
-          pointerStartY;
+          introStartY;
 
 
         const distance =
@@ -3290,18 +2986,40 @@
 
         if (
 
-          distance >=
+          distance <
           DRAG_THRESHOLD
 
         ) {
 
-          dragHasMoved =
-            true;
-
-
-          stopAutomaticRotation();
+          return;
 
         }
+
+
+        introDragDetected =
+          true;
+
+
+        introInteractionAttempts++;
+
+
+        if (
+
+          introInteractionAttempts <
+          INTRO_UNLOCK_ATTEMPTS
+
+        ) {
+
+          event.preventDefault();
+
+          event.stopPropagation();
+
+          return;
+
+        }
+
+
+        stopIntroAndUnlock();
 
       },
 
@@ -3310,26 +3028,24 @@
           true,
 
         passive:
-          true
-
+          false
       }
 
     );
 
 
-    viewer.container.addEventListener(
+    blocker.addEventListener(
 
       'touchend',
 
-      handlePostIntroPointerUp,
+      handleIntroPointerUp,
 
       {
         capture:
           true,
 
         passive:
-          true
-
+          false
       }
 
     );
@@ -3424,16 +3140,6 @@
       generation
     ) {
 
-      if (
-        generation !==
-        animationGeneration
-      ) {
-
-        return;
-
-      }
-
-
       isUserInterfered =
         false;
 
@@ -3441,10 +3147,6 @@
       isAutoRotationActive =
         false;
 
-
-      /*
-       * The five-interaction blocker is ACTIVE here.
-       */
 
       disableUserInteraction();
 
@@ -3640,25 +3342,6 @@
             currentTime;
 
 
-          /*
-           * IMPORTANT:
-           *
-           * The animation reaching its natural end does NOT
-           * bypass the five-interaction gate.
-           *
-           * The viewer remains blocked until interaction 5.
-           */
-
-          if (
-            interactionCount <
-            REQUIRED_INTERACTIONS
-          ) {
-
-            return;
-
-          }
-
-
           enableUserInteraction();
 
 
@@ -3721,16 +3404,6 @@
     function runUhis1SpecialAnimation(
       generation
     ) {
-
-      if (
-        generation !==
-        animationGeneration
-      ) {
-
-        return;
-
-      }
-
 
       isUserInterfered =
         false;
@@ -4320,22 +3993,6 @@
           let speedMultiplier;
 
 
-          /*
-           * FIX:
-           *
-           * The old formula jumped from 20 -> 15 at exactly
-           * phaseProgress = 0.5.
-           *
-           * That discontinuity was one source of the visible
-           * jerk.
-           *
-           * This version is continuous:
-           *
-           * start = 2
-           * middle = 20
-           * end = 2
-           */
-
           if (
             phaseProgress < 0.5
           ) {
@@ -4359,9 +4016,9 @@
 
             speedMultiplier =
 
-              20.0 -
+              15.0 -
 
-              18.0 *
+              14.0 *
 
               easeInOutSine(
 
@@ -4463,21 +4120,6 @@
 
 
           setRendererBackground();
-
-
-          /*
-           * Do not unlock merely because the animation timer
-           * finished. Five interactions are still mandatory.
-           */
-
-          if (
-            interactionCount <
-            REQUIRED_INTERACTIONS
-          ) {
-
-            return;
-
-          }
 
 
           enableUserInteraction();
@@ -4668,11 +4310,6 @@
 
       (event) => {
 
-        /*
-         * During the animation the blocker prevents user zoom.
-         * Programmatic animation zoom still works.
-         */
-
         if (isIntroActive) {
 
           return;
@@ -4816,7 +4453,7 @@
 
       'ready',
 
-      async () => {
+      () => {
 
         animationGeneration++;
 
@@ -4829,13 +4466,6 @@
           true;
 
 
-        /*
-         * Start a completely fresh five-interaction gate.
-         */
-
-        resetInteractionGate();
-
-
         viewer.container.classList.add(
           'switching'
         );
@@ -4845,23 +4475,6 @@
           'maxFov',
           UHIS1_INTRO_MAX_FOV
         );
-
-
-        await preloadPanorama(
-          'Ühis1.jpg'
-        );
-
-
-        if (
-
-          generation !==
-          animationGeneration
-
-        ) {
-
-          return;
-
-        }
 
 
         setUhis1IntroCamera();
@@ -4904,7 +4517,6 @@
       {
         once:
           true
-
       }
 
     );
@@ -4954,10 +4566,6 @@
             }
 
 
-            /*
-             * Cancel the previous animation.
-             */
-
             animationGeneration++;
 
 
@@ -4980,13 +4588,6 @@
             }
 
 
-            /*
-             * NEW PANORAMA = NEW FIVE-INTERACTION GATE.
-             */
-
-            resetInteractionGate();
-
-
             isAutoRotationActive =
               false;
 
@@ -5006,38 +4607,23 @@
 
 
             /*
-             * The old panorama remains visible while the new
-             * panorama is being decoded/loaded.
+             * IMPORTANT:
+             *
+             * We intentionally DO NOT reset:
+             *
+             * introInteractionAttempts
+             *
+             * here.
+             *
+             * The 5/6-drag unlock belongs only to the initial
+             * page-load blocker.
+             *
+             * Buttons switch panoramas without triggering that
+             * blocker again.
              */
 
+
             try {
-
-              const preloaded =
-                await preloadPanorama(
-                  panorama
-                );
-
-
-              if (
-
-                generation !==
-                animationGeneration
-
-              ) {
-
-                return;
-
-              }
-
-
-              if (!preloaded) {
-
-                throw new Error(
-                  'Panorama image failed to preload.'
-                );
-
-              }
-
 
               /* =================================================
                  ÜHIS1
@@ -5104,29 +4690,15 @@
 
                 if (!loaded) {
 
-                  throw new Error(
-                    'Photo Sphere Viewer could not load panorama.'
-                  );
-
-                }
-
-
-                /*
-                 * Short texture/render synchronization.
-                 * No long artificial waiting period.
-                 */
-
-                const ready =
-                  await waitForTextureRender(
-                    generation
-                  );
-
-
-                if (!ready) {
-
                   return;
 
                 }
+
+
+                viewer.setOption(
+                  'maxFov',
+                  UHIS1_INTRO_MAX_FOV
+                );
 
 
                 setUhis1IntroCamera();
@@ -5186,6 +4758,23 @@
                       return;
 
                     }
+
+
+                    viewer.setOption(
+                      'maxFov',
+                      UHIS1_INTRO_MAX_FOV
+                    );
+
+
+                    viewer.setOption(
+                      'fisheye',
+                      UHIS1_START_FISHEYE
+                    );
+
+
+                    viewer.zoom(
+                      UHIS1_START_ZOOM
+                    );
 
 
                     runUhis1SpecialAnimation(
@@ -5258,27 +4847,6 @@
 
 
               if (!loaded) {
-
-                throw new Error(
-                  'Photo Sphere Viewer could not load panorama.'
-                );
-
-              }
-
-
-              /*
-               * Short render synchronization to prevent the first
-               * animation frames from exposing an incompletely
-               * uploaded panorama texture.
-               */
-
-              const ready =
-                await waitForTextureRender(
-                  generation
-                );
-
-
-              if (!ready) {
 
                 return;
 
@@ -5366,16 +4934,6 @@
                   false;
 
 
-                /*
-                 * Keep the current five-interaction gate
-                 * disabled on an error; do not accidentally
-                 * leave the viewer blocked forever.
-                 */
-
-                interactionCount =
-                  REQUIRED_INTERACTIONS;
-
-
                 enableUserInteraction();
 
 
@@ -5414,7 +4972,6 @@
 
         passive:
           true
-
       }
 
     );
@@ -5436,7 +4993,6 @@
 
         passive:
           true
-
       }
 
     );
@@ -5458,73 +5014,6 @@
 
         passive:
           true
-
-      }
-
-    );
-
-
-    locationButtons.addEventListener(
-
-      'touchstart',
-
-      (event) => {
-
-        event.stopPropagation();
-
-      },
-
-      {
-        capture:
-          true,
-
-        passive:
-          true
-
-      }
-
-    );
-
-
-    locationButtons.addEventListener(
-
-      'touchmove',
-
-      (event) => {
-
-        event.stopPropagation();
-
-      },
-
-      {
-        capture:
-          true,
-
-        passive:
-          true
-
-      }
-
-    );
-
-
-    locationButtons.addEventListener(
-
-      'touchend',
-
-      (event) => {
-
-        event.stopPropagation();
-
-      },
-
-      {
-        capture:
-          true,
-
-        passive:
-          true
-
       }
 
     );
