@@ -232,14 +232,14 @@
       touch-action:
         none;
 
-      user-select:
-        none;
-
       -webkit-user-select:
         none;
 
-      -webkit-touch-callout:
+      user-select:
         none;
+
+      -webkit-tap-highlight-color:
+        transparent;
     }
 
 
@@ -1250,53 +1250,37 @@
 
 
     /*
-     * ============================================================
-     * PERSISTENT ÜHIS1 INTERACTION COUNTER
-     * ============================================================
+     * Ühis1 ONLY.
      *
-     * This is deliberately NOT reset when a panorama button is
-     * clicked.
+     * Six actual taps are required.
      *
-     * It survives:
+     * Taps 1–5:
+     *   blocked
      *
-     *   Ühis1 -> another panorama -> Ühis1
+     * Tap 6:
+     *   stop intro + unlock
      *
-     * The counter therefore represents the total number of
-     * blocked interactions received by the Ühis1 intro.
+     * This value is reset every time Ühis1 is selected
+     * from the location menu.
      */
 
     let uhis1InteractionAttempts =
       0;
 
 
-    /*
-     * Once the sixth interaction has happened, this remains true.
-     *
-     * Selecting Ühis1 again therefore does NOT make the user
-     * perform six more interactions.
-     */
-
-    let uhis1UnlockReached =
-      false;
-
-
-    /*
-     * The sixth interaction must occur DURING a Ühis1 animation.
-     */
-
-    const UHIS1_UNLOCK_ATTEMPTS =
-      6;
+    let isFirstPageLoad =
+      true;
 
 
     /* ============================================================
-       POINTER STATE
+       INTRO POINTER STATE
        ============================================================ */
 
     let introPointerDown =
       false;
 
 
-    let introInteractionRegistered =
+    let introDragDetected =
       false;
 
 
@@ -1311,6 +1295,23 @@
     const DRAG_THRESHOLD =
       8;
 
+
+    const INTRO_UNLOCK_ATTEMPTS =
+      6;
+
+
+    /*
+     * Prevents the same physical interaction from being
+     * interpreted twice.
+     */
+
+    let introPointerId =
+      null;
+
+
+    /* ============================================================
+       POST-INTRO POINTER STATE
+       ============================================================ */
 
     let isPointerDown =
       false;
@@ -1470,10 +1471,6 @@
 
     let touchZoomLevel =
       null;
-
-
-    let applyingTouchZoom =
-      false;
 
 
     /* ============================================================
@@ -1638,6 +1635,17 @@
        ============================================================ */
 
     function revealFirstPanorama() {
+
+      if (!isFirstPageLoad) {
+
+        return;
+
+      }
+
+
+      isFirstPageLoad =
+        false;
+
 
       viewerElement.classList.remove(
         'initial-fade'
@@ -2027,7 +2035,7 @@
 
 
     /* ============================================================
-       INTERACTION
+       USER INTERACTION ENABLE / DISABLE
        ============================================================ */
 
     function enableUserInteraction() {
@@ -2069,13 +2077,6 @@
       });
 
 
-      /*
-       * Only show the blocker when an intro actually needs it.
-       *
-       * The blocker itself is always used for intro animations,
-       * but its unlock condition is handled separately.
-       */
-
       blocker.classList.remove(
         'unlocked'
       );
@@ -2083,7 +2084,20 @@
     }
 
 
+    /* ============================================================
+       STOP AUTOMATIC ROTATION
+       ============================================================ */
+
     function stopAutomaticRotation() {
+
+      /*
+       * IMPORTANT:
+       *
+       * A tap never reaches this function.
+       *
+       * This function is called only after a real drag has
+       * exceeded DRAG_THRESHOLD.
+       */
 
       if (isIntroActive) {
 
@@ -2126,6 +2140,10 @@
 
       }
 
+
+      /*
+       * A pointer DOWN alone must NEVER stop automatic rotation.
+       */
 
       isPointerDown =
         true;
@@ -2183,32 +2201,40 @@
         );
 
 
+      /*
+       * A normal tap stays below this threshold.
+       *
+       * Therefore a phone tap cannot stop the animation.
+       */
+
       if (
 
-        distance >=
+        distance <
         DRAG_THRESHOLD
 
       ) {
 
-        dragHasMoved =
-          true;
-
-
-        stopAutomaticRotation();
+        return;
 
       }
+
+
+      dragHasMoved =
+        true;
+
+
+      stopAutomaticRotation();
 
     }
 
 
     function handlePostIntroPointerUp() {
 
-      if (isIntroActive) {
-
-        return;
-
-      }
-
+      /*
+       * A pointer UP without movement is simply a tap.
+       *
+       * It does NOT stop automatic rotation.
+       */
 
       isPointerDown =
         false;
@@ -2293,108 +2319,12 @@
 
 
     /* ============================================================
-       TOUCH POST-INTRO
+       POST-INTRO PINCH ZOOM
        ============================================================ */
 
     viewer.container.addEventListener(
 
       'touchstart',
-
-      (event) => {
-
-        if (isIntroActive) {
-
-          return;
-
-        }
-
-
-        const touch =
-          event.touches[0];
-
-
-        if (!touch) {
-
-          return;
-
-        }
-
-
-        isPointerDown =
-          true;
-
-
-        dragHasMoved =
-          false;
-
-
-        pointerStartX =
-          touch.clientX;
-
-
-        pointerStartY =
-          touch.clientY;
-
-
-        if (
-          event.touches.length >= 2
-        ) {
-
-          const a =
-            event.touches[0];
-
-          const b =
-            event.touches[1];
-
-
-          lastTouchDistance =
-            Math.hypot(
-
-              a.clientX -
-              b.clientX,
-
-              a.clientY -
-              b.clientY
-
-            );
-
-
-          touchZoomLevel =
-            viewer.getZoomLevel();
-
-        }
-
-        else {
-
-          lastTouchDistance =
-            null;
-
-          touchZoomLevel =
-            null;
-
-        }
-
-      },
-
-      {
-        capture:
-          true,
-
-        passive:
-          true
-
-      }
-
-    );
-
-
-    /* ============================================================
-       PHONE PINCH ZOOM
-       ============================================================ */
-
-    viewer.container.addEventListener(
-
-      'touchmove',
 
       (event) => {
 
@@ -2414,7 +2344,65 @@
         }
 
 
+        const a =
+          event.touches[0];
+
+        const b =
+          event.touches[1];
+
+
+        lastTouchDistance =
+          Math.hypot(
+
+            a.clientX -
+            b.clientX,
+
+            a.clientY -
+            b.clientY
+
+          );
+
+
+        touchZoomLevel =
+          viewer.getZoomLevel();
+
+      },
+
+      {
+        capture:
+          true,
+
+        passive:
+          true
+
+      }
+
+    );
+
+
+    viewer.container.addEventListener(
+
+      'touchmove',
+
+      (event) => {
+
+        if (isIntroActive) {
+
+          return;
+
+        }
+
+
         if (!IS_TOUCH_DEVICE) {
+
+          return;
+
+        }
+
+
+        if (
+          event.touches.length < 2
+        ) {
 
           return;
 
@@ -2499,17 +2487,9 @@
         event.preventDefault();
 
 
-        applyingTouchZoom =
-          true;
-
-
         viewer.zoom(
           touchZoomLevel
         );
-
-
-        applyingTouchZoom =
-          false;
 
 
         lastTouchDistance =
@@ -2547,9 +2527,6 @@
 
         }
 
-
-        handlePostIntroPointerUp();
-
       },
 
       {
@@ -2576,8 +2553,6 @@
         touchZoomLevel =
           null;
 
-        handlePostIntroPointerUp();
-
       },
 
       {
@@ -2593,12 +2568,22 @@
 
 
     /* ============================================================
-       STOP INTRO
+       STOP ÜHIS1 INTRO
        ============================================================ */
 
     function stopIntroAndUnlock() {
 
       if (!isIntroActive) {
+
+        return;
+
+      }
+
+
+      if (
+        currentPanorama !==
+        'Ühis1.jpg'
+      ) {
 
         return;
 
@@ -2635,6 +2620,12 @@
       }
 
 
+      viewer.setOption(
+        'maxFov',
+        UHIS1_USER_MAX_FOV
+      );
+
+
       enableUserInteraction();
 
 
@@ -2654,73 +2645,7 @@
 
 
     /* ============================================================
-       ÜHIS1 INTERACTION COUNTER
-       ============================================================
-       *
-       * IMPORTANT:
-       *
-       * This function is used ONLY by the Ühis1 animation.
-       *
-       * It counts one interaction per pointer/touch completion.
-       *
-       * It does NOT count touchmove events.
-       *
-       * It does NOT exist in the other panorama animations.
-       */
-
-    function registerUhis1Interaction() {
-
-      if (!isIntroActive) {
-
-        return;
-
-      }
-
-
-      if (
-        currentPanorama !==
-        'Ühis1.jpg'
-      ) {
-
-        return;
-
-      }
-
-
-      if (uhis1UnlockReached) {
-
-        stopIntroAndUnlock();
-
-        return;
-
-      }
-
-
-      uhis1InteractionAttempts++;
-
-
-      if (
-
-        uhis1InteractionAttempts >=
-        UHIS1_UNLOCK_ATTEMPTS
-
-      ) {
-
-        uhis1UnlockReached =
-          true;
-
-
-        stopIntroAndUnlock();
-
-        return;
-
-      }
-
-    }
-
-
-    /* ============================================================
-       INTRO BLOCKER POINTER
+       INTRO BLOCKER — POINTER DOWN
        ============================================================ */
 
     function handleIntroPointerDown(
@@ -2735,17 +2660,27 @@
 
 
       /*
-       * The blocker is intentionally only a sixth-interaction
-       * unlock mechanism for Ühis1.
-       *
-       * For every other panorama it simply blocks everything.
+       * Ignore additional pointer streams.
        */
+
+      if (
+        introPointerId !== null
+      ) {
+
+        return;
+
+      }
+
+
+      introPointerId =
+        event.pointerId;
+
 
       introPointerDown =
         true;
 
 
-      introInteractionRegistered =
+      introDragDetected =
         false;
 
 
@@ -2763,17 +2698,19 @@
 
 
       /*
-       * A pointerdown is NOT immediately counted.
+       * Prevent this interaction from reaching the viewer.
        *
-       * We wait for pointerup so a phone tap counts once.
+       * This is especially important on phones.
        */
 
       event.preventDefault();
 
-      event.stopPropagation();
-
     }
 
+
+    /* ============================================================
+       INTRO BLOCKER — POINTER MOVE
+       ============================================================ */
 
     function handleIntroPointerMove(
       event
@@ -2783,7 +2720,12 @@
 
         !isIntroActive ||
 
-        !introPointerDown
+        !introPointerDown ||
+
+        introDragDetected ||
+
+        event.pointerId !==
+        introPointerId
 
       ) {
 
@@ -2792,53 +2734,122 @@
       }
 
 
+      const dx =
+        event.clientX -
+        introStartX;
+
+
+      const dy =
+        event.clientY -
+        introStartY;
+
+
+      const distance =
+        Math.sqrt(
+
+          dx * dx +
+          dy * dy
+
+        );
+
+
       /*
-       * Do NOT increment the counter here.
+       * IMPORTANT:
        *
-       * Mobile browsers can produce many touchmove events for
-       * one physical gesture.
+       * Movement below the threshold is still considered
+       * a TAP.
+       */
+
+      if (
+
+        distance <
+        DRAG_THRESHOLD
+
+      ) {
+
+        event.preventDefault();
+
+        return;
+
+      }
+
+
+      introDragDetected =
+        true;
+
+
+      /*
+       * Other panoramas:
        *
-       * The complete gesture is counted once on pointerup.
+       * Swipes are blocked.
+       * Nothing is counted.
+       * The animation continues.
+       */
+
+      if (
+        currentPanorama !==
+        'Ühis1.jpg'
+      ) {
+
+        event.preventDefault();
+
+        return;
+
+      }
+
+
+      /*
+       * Ühis1:
+       *
+       * A drag is NOT a tap.
+       *
+       * It remains blocked and does not increment
+       * the six-tap counter.
        */
 
       event.preventDefault();
 
-      event.stopPropagation();
-
     }
 
+
+    /* ============================================================
+       INTRO BLOCKER — POINTER UP
+       *
+       * THIS IS WHERE THE SIX TAPS ARE COUNTED.
+       * ============================================================ */
 
     function handleIntroPointerUp(
       event
     ) {
 
-      if (!isIntroActive) {
+      if (
+
+        !isIntroActive ||
+
+        event.pointerId !==
+        introPointerId
+
+      ) {
 
         return;
 
       }
 
 
-      if (!introPointerDown) {
-
-        return;
-
-      }
-
-
-      if (introInteractionRegistered) {
-
-        return;
-
-      }
-
-
-      introInteractionRegistered =
-        true;
+      const wasDrag =
+        introDragDetected;
 
 
       introPointerDown =
         false;
+
+
+      introDragDetected =
+        false;
+
+
+      introPointerId =
+        null;
 
 
       blocker.classList.remove(
@@ -2846,66 +2857,78 @@
       );
 
 
+      event.preventDefault();
+
+
       /*
-       * ONLY ÜHIS1 gets the six-interaction unlock.
+       * A drag is not a tap.
+       */
+
+      if (wasDrag) {
+
+        return;
+
+      }
+
+
+      /*
+       * OTHER PANORAMAS
        *
-       * Every other intro stays blocked regardless of how many
-       * interactions occur.
+       * A phone tap does absolutely nothing.
+       *
+       * Most importantly:
+       *
+       * - no counter
+       * - no stopAutomaticRotation()
+       * - no animationGeneration change
+       * - no animation cancellation
+       */
+
+      if (
+        currentPanorama !==
+        'Ühis1.jpg'
+      ) {
+
+        return;
+
+      }
+
+
+      /*
+       * ÜHIS1
+       *
+       * Count exactly one completed tap.
+       */
+
+      uhis1InteractionAttempts++;
+
+
+      /*
+       * Taps 1–5:
+       *
+       * Keep the animation running.
+       * Keep the blocker active.
        */
 
       if (
 
-        currentPanorama ===
-        'Ühis1.jpg'
+        uhis1InteractionAttempts <
+        INTRO_UNLOCK_ATTEMPTS
 
       ) {
 
-        registerUhis1Interaction();
+        return;
 
       }
 
 
       /*
-       * The event is ALWAYS blocked while the intro is active
-       * unless registerUhis1Interaction() reaches #6 and calls
-       * stopIntroAndUnlock().
+       * Tap 6:
+       *
+       * Stop the Ühis1 intro and unlock.
        */
 
-      if (isIntroActive) {
-
-        event.preventDefault();
-
-        event.stopPropagation();
-
-      }
-
-    }
-
-
-    function handleIntroPointerCancel(
-      event
-    ) {
-
-      introPointerDown =
-        false;
-
-
-      introInteractionRegistered =
-        false;
-
-
-      blocker.classList.remove(
-        'dragging'
-      );
-
-
-      if (isIntroActive) {
-
-        event.preventDefault();
-
-        event.stopPropagation();
-
-      }
+      stopIntroAndUnlock();
 
     }
 
@@ -2968,221 +2991,33 @@
 
       'pointercancel',
 
-      handleIntroPointerCancel,
-
-      {
-        capture:
-          true,
-
-        passive:
-          false
-
-      }
-
-    );
-
-
-    /* ============================================================
-       INTRO TOUCH FALLBACK
-       ============================================================
-       *
-       * Pointer Events normally cover modern phones.
-       *
-       * This explicit touch fallback is included so the blocker
-       * also works on browsers where pointer events behave
-       * differently.
-       */
-
-    let introTouchActive =
-      false;
-
-
-    let introTouchRegistered =
-      false;
-
-
-    blocker.addEventListener(
-
-      'touchstart',
-
       (event) => {
-
-        if (!isIntroActive) {
-
-          return;
-
-        }
-
-
-        if (introTouchActive) {
-
-          return;
-
-        }
-
-
-        introTouchActive =
-          true;
-
-
-        introTouchRegistered =
-          false;
-
-
-        blocker.classList.add(
-          'dragging'
-        );
-
-
-        event.preventDefault();
-
-        event.stopPropagation();
-
-      },
-
-      {
-        capture:
-          true,
-
-        passive:
-          false
-
-      }
-
-    );
-
-
-    blocker.addEventListener(
-
-      'touchmove',
-
-      (event) => {
-
-        if (!isIntroActive) {
-
-          return;
-
-        }
-
-
-        event.preventDefault();
-
-        event.stopPropagation();
-
-      },
-
-      {
-        capture:
-          true,
-
-        passive:
-          false
-
-      }
-
-    );
-
-
-    blocker.addEventListener(
-
-      'touchend',
-
-      (event) => {
-
-        if (!isIntroActive) {
-
-          return;
-
-        }
-
-
-        if (!introTouchActive) {
-
-          return;
-
-        }
-
-
-        if (introTouchRegistered) {
-
-          return;
-
-        }
-
-
-        introTouchRegistered =
-          true;
-
-
-        introTouchActive =
-          false;
-
-
-        blocker.classList.remove(
-          'dragging'
-        );
-
 
         if (
-
-          currentPanorama ===
-          'Ühis1.jpg'
-
+          event.pointerId !==
+          introPointerId
         ) {
 
-          registerUhis1Interaction();
+          return;
 
         }
 
 
-        if (isIntroActive) {
-
-          event.preventDefault();
-
-          event.stopPropagation();
-
-        }
-
-      },
-
-      {
-        capture:
-          true,
-
-        passive:
-          false
-
-      }
-
-    );
-
-
-    blocker.addEventListener(
-
-      'touchcancel',
-
-      (event) => {
-
-        introTouchActive =
+        introPointerDown =
           false;
 
 
-        introTouchRegistered =
+        introDragDetected =
           false;
+
+
+        introPointerId =
+          null;
 
 
         blocker.classList.remove(
           'dragging'
         );
-
-
-        if (isIntroActive) {
-
-          event.preventDefault();
-
-          event.stopPropagation();
-
-        }
 
       },
 
@@ -3552,6 +3387,17 @@
       generation
     ) {
 
+      /*
+       * CRITICAL:
+       *
+       * Every time this function starts, the six-tap counter
+       * is reset.
+       */
+
+      uhis1InteractionAttempts =
+        0;
+
+
       isUserInterfered =
         false;
 
@@ -3581,29 +3427,6 @@
 
 
       setRendererBackground();
-
-
-      /*
-       * If the sixth interaction has already happened during an
-       * earlier Ühis1 animation, do NOT reset the counter.
-       *
-       * The animation still starts normally, but the blocker is
-       * not allowed to restart the six-interaction requirement.
-       */
-
-      if (uhis1UnlockReached) {
-
-        /*
-         * We deliberately do not immediately stop the animation.
-         *
-         * Selecting Ühis1 again starts its animation normally.
-         *
-         * The blocker remains present visually, but the first
-         * interaction will unlock it because the sixth-interaction
-         * requirement has already been permanently satisfied.
-         */
-
-      }
 
 
       const tStage0 =
@@ -4636,8 +4459,12 @@
           true;
 
 
-        currentPanorama =
-          'Ühis1.jpg';
+        /*
+         * Always start with a fresh six-tap sequence.
+         */
+
+        uhis1InteractionAttempts =
+          0;
 
 
         viewer.container.classList.add(
@@ -4691,7 +4518,6 @@
       {
         once:
           true
-
       }
 
     );
@@ -4727,10 +4553,40 @@
             }
 
 
+            /*
+             * Selecting Ühis1 ALWAYS starts a completely new
+             * six-tap sequence.
+             *
+             * This happens immediately, before loading.
+             */
+
+            if (
+
+              panorama ===
+              'Ühis1.jpg'
+
+            ) {
+
+              uhis1InteractionAttempts =
+                0;
+
+            }
+
+
+            /*
+             * Do not ignore Ühis1 just because it is already
+             * the current panorama.
+             *
+             * Selecting it from the menu must restart its intro.
+             */
+
             if (
 
               panorama ===
                 currentPanorama &&
+
+              panorama !==
+                'Ühis1.jpg' &&
 
               !isIntroActive
 
@@ -4776,36 +4632,24 @@
 
 
             /*
-             * Reset only the per-gesture state.
-             *
-             * DO NOT reset:
-             *
-             *   uhis1InteractionAttempts
-             *   uhis1UnlockReached
-             *
-             * Therefore selecting Ühis1 again does not reset the
-             * sixth-interaction progression.
+             * Every newly selected panorama starts blocked.
              */
+
+            blocker.classList.remove(
+              'unlocked'
+            );
+
 
             introPointerDown =
               false;
 
 
-            introInteractionRegistered =
+            introDragDetected =
               false;
 
 
-            introTouchActive =
-              false;
-
-
-            introTouchRegistered =
-              false;
-
-
-            blocker.classList.remove(
-              'dragging'
-            );
+            introPointerId =
+              null;
 
 
             hideFinishedUI();
@@ -4827,8 +4671,13 @@
 
               ) {
 
-                currentPanorama =
-                  'Ühis1.jpg';
+                /*
+                 * Reset AGAIN here as a safety measure after
+                 * entering the Ühis1 branch.
+                 */
+
+                uhis1InteractionAttempts =
+                  0;
 
 
                 viewer.setOption(
@@ -4888,6 +4737,15 @@
                   return;
 
                 }
+
+
+                /*
+                 * Selecting Ühis1 has now definitely produced
+                 * a new zero-count intro.
+                 */
+
+                uhis1InteractionAttempts =
+                  0;
 
 
                 viewer.setOption(
@@ -4972,6 +4830,15 @@
                     );
 
 
+                    /*
+                     * Fresh animation = fresh six-tap
+                     * sequence.
+                     */
+
+                    uhis1InteractionAttempts =
+                      0;
+
+
                     runUhis1SpecialAnimation(
                       generation
                     );
@@ -5046,10 +4913,6 @@
                 return;
 
               }
-
-
-              currentPanorama =
-                panorama;
 
 
               setIntroCamera(
@@ -5152,7 +5015,7 @@
 
 
     /* ============================================================
-       PREVENT BUTTONS FROM BECOMING PAN INPUT
+       PREVENT MENU BUTTONS FROM BECOMING PAN INPUT
        ============================================================ */
 
     locationButtons.addEventListener(
@@ -5171,7 +5034,6 @@
 
         passive:
           true
-
       }
 
     );
@@ -5193,7 +5055,6 @@
 
         passive:
           true
-
       }
 
     );
@@ -5215,73 +5076,6 @@
 
         passive:
           true
-
-      }
-
-    );
-
-
-    locationButtons.addEventListener(
-
-      'touchstart',
-
-      (event) => {
-
-        event.stopPropagation();
-
-      },
-
-      {
-        capture:
-          true,
-
-        passive:
-          true
-
-      }
-
-    );
-
-
-    locationButtons.addEventListener(
-
-      'touchmove',
-
-      (event) => {
-
-        event.stopPropagation();
-
-      },
-
-      {
-        capture:
-          true,
-
-        passive:
-          true
-
-      }
-
-    );
-
-
-    locationButtons.addEventListener(
-
-      'touchend',
-
-      (event) => {
-
-        event.stopPropagation();
-
-      },
-
-      {
-        capture:
-          true,
-
-        passive:
-          true
-
       }
 
     );
