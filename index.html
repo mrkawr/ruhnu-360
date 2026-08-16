@@ -14,7 +14,8 @@
 
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 
-  <link rel="preload" href="Ühis1.webp" as="image" fetchpriority="high">
+  <link rel="preload" href="uhis1-preview.webp" as="image" fetchpriority="high">
+  <link rel="preload" href="Ühis1.webp" as="image" fetchpriority="low">
   <link rel="preload" href="Tuletorn.webp" as="image" fetchpriority="low">
   <link rel="preload" href="Puukirik.webp" as="image" fetchpriority="low">
   <link rel="preload" href="Kirik12.webp" as="image" fetchpriority="low">
@@ -1165,6 +1166,8 @@
        PANORAMA CONFIG
        ============================================================ */
 
+    const INITIAL_LOAD_PANORAMA = 'Ühis1.webp';
+
     const PANORAMA_ASSET_MAP = {
 
       'Tuletorn.jpg': 'Tuletorn.webp',
@@ -1173,13 +1176,19 @@
 
       'Kirik12.webp': 'Kirik12.webp',
 
-      'Ühis1.webp': 'Ühis1.webp',
+      'Ühis1.webp': 'uhis1-preview.webp',
 
       'Päikeseloojang.jpg': 'Päikeseloojang.jpg'
 
     };
 
-    function resolvePanoramaAsset(panorama) {
+    function resolvePanoramaAsset(panorama, preview = false) {
+
+      if (preview && panorama === 'Ühis1.webp') {
+
+        return 'uhis1-preview.webp';
+
+      }
 
       return PANORAMA_ASSET_MAP[panorama] || panorama;
 
@@ -1216,6 +1225,13 @@
 
 
       'Ühis1.webp': {
+
+        START_YAW:
+          0
+      },
+
+
+      'Rand.webp': {
 
         START_YAW:
           0
@@ -1282,7 +1298,7 @@
 
 
     let currentPanorama =
-      'Ühis1.webp';
+      INITIAL_LOAD_PANORAMA;
 
 
     let currentYaw =
@@ -1582,7 +1598,7 @@
           viewerElement,
 
         panorama:
-          'Ühis1.webp',
+          resolvePanoramaAsset(INITIAL_LOAD_PANORAMA, true),
 
         navbar:
           false,
@@ -4764,23 +4780,35 @@
         );
 
 
-        setUhis1IntroCamera();
+        setIntroCamera(
+          INITIAL_LOAD_PANORAMA
+        );
 
 
         updateActiveButton(
-          'Ühis1.webp'
+          INITIAL_LOAD_PANORAMA
         );
 
 
         if (typeof window.requestIdleCallback === 'function') {
 
-          window.requestIdleCallback(() => preloadPanoramas());
+          window.requestIdleCallback(() => {
+
+            preloadImage('Ühis1.webp');
+            preloadPanoramas();
+
+          });
 
         }
 
         else {
 
-          setTimeout(preloadPanoramas, 150);
+          setTimeout(() => {
+
+            preloadImage('Ühis1.webp');
+            preloadPanoramas();
+
+          }, 150);
 
         }
 
