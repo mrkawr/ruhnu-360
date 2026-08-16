@@ -1157,6 +1157,26 @@
        PANORAMA CONFIG
        ============================================================ */
 
+    const PANORAMA_ASSET_MAP = {
+
+      'Tuletorn.jpg': 'Tuletorn.webp',
+
+      'Puukirik.jpg': 'Puukirik.webp',
+
+      'Kirik12.webp': 'Kirik12.webp',
+
+      'Ühis1.webp': 'Ühis1.webp',
+
+      'Päikeseloojang.jpg': 'Päikeseloojang.jpg'
+
+    };
+
+    function resolvePanoramaAsset(panorama) {
+
+      return PANORAMA_ASSET_MAP[panorama] || panorama;
+
+    }
+
     const PANORAMAS = {
 
       'Tuletorn.jpg': {
@@ -1194,6 +1214,39 @@
       }
 
     };
+
+    const PANORAMA_URLS = Object.keys(PANORAMAS).map(resolvePanoramaAsset);
+
+    function preloadImage(url) {
+
+      return new Promise((resolve) => {
+
+        const img = new Image();
+
+        img.decoding = 'async';
+        img.loading = 'eager';
+
+        img.onload = () => resolve(url);
+
+        img.onerror = () => resolve(url);
+
+        img.src = url;
+
+      });
+
+    }
+
+    function preloadPanoramas() {
+
+      const uniqueUrls = [...new Set(PANORAMA_URLS)];
+
+      uniqueUrls.forEach((url) => {
+
+        preloadImage(url);
+
+      });
+
+    }
 
 
     /* ============================================================
@@ -4711,6 +4764,19 @@
         );
 
 
+        if (typeof window.requestIdleCallback === 'function') {
+
+          window.requestIdleCallback(() => preloadPanoramas());
+
+        }
+
+        else {
+
+          setTimeout(preloadPanoramas, 150);
+
+        }
+
+
         revealFirstPanorama();
 
 
@@ -4885,6 +4951,8 @@
 
               ) {
 
+                const panoramaAsset = resolvePanoramaAsset(panorama);
+
                 viewer.setOption(
                   'maxFov',
                   UHIS1_INTRO_MAX_FOV
@@ -4895,7 +4963,7 @@
 
                   await viewer.setPanorama(
 
-                    panorama,
+                    panoramaAsset,
 
                     {
 
@@ -5062,12 +5130,14 @@
                   panorama
                 );
 
+              const panoramaAsset = resolvePanoramaAsset(panorama);
+
 
               const loaded =
 
                 await viewer.setPanorama(
 
-                  panorama,
+                  panoramaAsset,
 
                   {
 
