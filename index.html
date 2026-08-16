@@ -12,28 +12,6 @@
 
   <title>Bioloogid Ruhnus 360</title>
 
-  <!-- ============================================================
-       PRIORITY LOAD
-       ============================================================ -->
-
-  <!--
-    Ühis1 is the FIRST panorama.
-
-    This is intentionally the ONLY panorama preloaded by the HTML
-    parser. It gets maximum network priority so the first animation
-    can start as soon as possible.
-
-    The remaining panoramas are preloaded by JavaScript only after
-    Ühis1 has become ready.
-  -->
-
-  <link
-    rel="preload"
-    as="image"
-    href="Ühis1.webp"
-    fetchpriority="high"
-  >
-
   <link
     rel="stylesheet"
     href="https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/core@5/index.css"
@@ -42,7 +20,6 @@
   <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 
   <script src="https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/core@5/index.js"></script>
-
 
   <style>
 
@@ -1117,7 +1094,7 @@
     <button
       class="location-button lighthouse"
       type="button"
-      data-panorama="Tuletorn.webp"
+      data-panorama="Tuletorn.jpg"
       aria-label="Tuletorn"
       title="Tuletorn"
     ></button>
@@ -1126,7 +1103,7 @@
     <button
       class="location-button sunset"
       type="button"
-      data-panorama="Rand.webp"
+      data-panorama="Päikeseloojang.jpg"
       aria-label="Päikeseloojang"
       title="Päikeseloojang"
     ></button>
@@ -1135,7 +1112,7 @@
     <button
       class="location-button wooden-house"
       type="button"
-      data-panorama="Puukirik.webp"
+      data-panorama="Puukirik.jpg"
       aria-label="Puukirik"
       title="Puukirik"
     ></button>
@@ -1181,21 +1158,21 @@
 
     const PANORAMAS = {
 
-      'Tuletorn.webp': {
+      'Tuletorn.jpg': {
 
         START_YAW:
           -60
       },
 
 
-      'Rand.webp': {
+      'Päikeseloojang.jpg': {
 
         START_YAW:
           300
       },
 
 
-      'Puukirik.webp': {
+      'Puukirik.jpg': {
 
         START_YAW:
           120
@@ -1216,397 +1193,6 @@
       }
 
     };
-
-
-    /* ============================================================
-       PANORAMA PRELOAD SYSTEM
-       ============================================================ */
-
-    /*
-     * The first panorama is NOT put through this queue.
-     *
-     * It is loaded directly by Photo Sphere Viewer and also has
-     * <link rel="preload"> in <head>.
-     *
-     * Once the first panorama is ready, these four images start
-     * downloading in the background.
-     */
-
-    const BACKGROUND_PANORAMAS = [
-
-      'Tuletorn.webp',
-
-      'Rand.webp',
-
-      'Puukirik.webp',
-
-      'Kirik12.webp'
-
-    ];
-
-
-    /*
-     * Stores one Promise per panorama.
-     *
-     * Once an image has been requested, subsequent calls reuse the
-     * same Promise instead of creating another download.
-     */
-
-    const panoramaPreloadPromises =
-      new Map();
-
-
-    /*
-     * Stores successfully decoded Image objects.
-     *
-     * Keeping the objects alive prevents the browser from treating
-     * the preload as an immediately disposable resource.
-     */
-
-    const panoramaPreloadedImages =
-      new Map();
-
-
-    /*
-     * Number of simultaneous background image downloads.
-     *
-     * Two is intentional:
-     *
-     * - enough parallelism to prepare the next panoramas quickly
-     * - does not flood the network immediately after Ühis1 loads
-     */
-
-    const PRELOAD_CONCURRENCY =
-      2;
-
-
-    let preloadQueueRunning =
-      false;
-
-
-    function preloadPanorama(
-      panorama,
-      priority = 'auto'
-    ) {
-
-      if (
-        panoramaPreloadPromises.has(
-          panorama
-        )
-      ) {
-
-        return panoramaPreloadPromises.get(
-          panorama
-        );
-
-      }
-
-
-      const promise =
-        new Promise(
-          (resolve) => {
-
-            const image =
-              new Image();
-
-
-            /*
-             * fetchPriority is supported by modern browsers.
-             *
-             * It is harmless on browsers which ignore it.
-             */
-
-            try {
-
-              image.fetchPriority =
-                priority;
-
-            }
-
-            catch (error) {
-
-              // Browser does not expose fetchPriority.
-
-            }
-
-
-            image.decoding =
-              'async';
-
-
-            image.onload =
-              async () => {
-
-                /*
-                 * Decode before declaring the preload ready.
-                 *
-                 * This removes image decoding work from the moment
-                 * the user actually clicks the location button.
-                 */
-
-                try {
-
-                  if (
-                    typeof image.decode ===
-                    'function'
-                  ) {
-
-                    await image.decode();
-
-                  }
-
-                }
-
-                catch (error) {
-
-                  /*
-                   * decode() can reject after a successful load
-                   * in some browsers. The image itself is still
-                   * usable, so continue.
-                   */
-
-                }
-
-
-                panoramaPreloadedImages.set(
-
-                  panorama,
-
-                  image
-
-                );
-
-
-                resolve({
-
-                  panorama:
-                    panorama,
-
-                  image:
-                    image,
-
-                  loaded:
-                    true
-
-                });
-
-              };
-
-
-            image.onerror =
-              () => {
-
-                /*
-                 * Do not permanently cache a failed preload.
-                 *
-                 * A later click can retry through Photo Sphere
-                 * Viewer.
-                 */
-
-                panoramaPreloadPromises.delete(
-                  panorama
-                );
-
-
-                resolve({
-
-                  panorama:
-                    panorama,
-
-                  image:
-                    null,
-
-                  loaded:
-                    false
-
-                });
-
-              };
-
-
-            /*
-             * Setting src begins the actual browser request.
-             *
-             * The browser's HTTP cache can then be reused by
-             * Photo Sphere Viewer when setPanorama() is called.
-             */
-
-            image.src =
-              panorama;
-
-          }
-
-        );
-
-
-      panoramaPreloadPromises.set(
-
-        panorama,
-
-        promise
-
-      );
-
-
-      return promise;
-
-    }
-
-
-    async function preloadPanoramaQueue() {
-
-      if (preloadQueueRunning) {
-
-        return;
-
-      }
-
-
-      preloadQueueRunning =
-        true;
-
-
-      let nextIndex =
-        0;
-
-
-      async function worker() {
-
-        while (
-
-          nextIndex <
-          BACKGROUND_PANORAMAS.length
-
-        ) {
-
-          const index =
-            nextIndex++;
-
-
-          const panorama =
-            BACKGROUND_PANORAMAS[
-              index
-            ];
-
-
-          await preloadPanorama(
-
-            panorama,
-
-            'low'
-
-          );
-
-        }
-
-      }
-
-
-      const workers =
-        Math.min(
-
-          PRELOAD_CONCURRENCY,
-
-          BACKGROUND_PANORAMAS.length
-
-        );
-
-
-      await Promise.all(
-
-        Array.from(
-
-          {
-            length:
-              workers
-          },
-
-          () =>
-            worker()
-
-        )
-
-      );
-
-
-      preloadQueueRunning =
-        false;
-
-    }
-
-
-    /*
-     * Start the remaining panorama downloads without blocking the
-     * first animation.
-     *
-     * requestIdleCallback is used when available.
-     *
-     * setTimeout is the fallback.
-     */
-
-    function startBackgroundPanoramaPreload() {
-
-      if (
-        'requestIdleCallback' in window
-      ) {
-
-        requestIdleCallback(
-
-          () => {
-
-            preloadPanoramaQueue();
-
-          },
-
-          {
-            timeout:
-              800
-          }
-
-        );
-
-      }
-
-      else {
-
-        setTimeout(
-
-          () => {
-
-            preloadPanoramaQueue();
-
-          },
-
-          0
-
-        );
-
-      }
-
-    }
-
-
-    /*
-     * If a user clicks a panorama before the background queue has
-     * reached it, immediately promote that panorama.
-     *
-     * This means the clicked panorama never waits behind the
-     * preload queue.
-     */
-
-    function prioritizePanorama(
-      panorama
-    ) {
-
-      return preloadPanorama(
-
-        panorama,
-
-        'high'
-
-      );
-
-    }
 
 
     /* ============================================================
@@ -1646,6 +1232,29 @@
 
 
     let lastAnimationTime =
+      0;
+
+
+    /*
+     * IMPORTANT:
+     *
+     * This counter belongs ONLY to Ühis1.
+     *
+     * It counts COMPLETE pointer/touch interactions:
+     *
+     *   1 = blocked
+     *   2 = blocked
+     *   3 = blocked
+     *   4 = blocked
+     *   5 = blocked
+     *   6 = STOP INTRO + UNLOCK 360
+     *
+     * Selecting Ühis1 from the menu again resets this to 0.
+     *
+     * Other panoramas NEVER increment this counter.
+     */
+
+    let uhis1InteractionAttempts =
       0;
 
 
@@ -1693,12 +1302,12 @@
       8;
 
 
+    /*
+     * Only Ühis1 uses the six-interaction unlock.
+     */
+
     const INTRO_UNLOCK_ATTEMPTS =
       6;
-
-
-    let uhis1InteractionAttempts =
-      0;
 
 
     /* ============================================================
@@ -2969,6 +2578,10 @@
       }
 
 
+      /*
+       * ONLY Ühis1 can be interrupted.
+       */
+
       if (
         currentPanorama !==
         'Ühis1.webp'
@@ -3009,6 +2622,11 @@
       }
 
 
+      /*
+       * Keep the exact camera position reached at the moment
+       * of the sixth interaction.
+       */
+
       viewer.setOption(
         'maxFov',
         UHIS1_USER_MAX_FOV
@@ -3034,12 +2652,24 @@
 
 
     /* ============================================================
-       ÜHIS1 INTERACTION COUNTER
+       NEW ÜHIS1 INTERACTION COUNTER
        ============================================================ */
 
     function registerUhis1Interaction(
       event
     ) {
+
+      /*
+       * This function is called ONLY while the Ühis1 intro
+       * is active and ONLY for interactions on the blocker.
+       *
+       * It counts BOTH:
+       *
+       *   - mouse clicks
+       *   - phone/tablet taps
+       *
+       * No movement is required.
+       */
 
       if (!isIntroActive) {
 
@@ -3061,6 +2691,10 @@
       uhis1InteractionAttempts++;
 
 
+      /*
+       * First five interactions remain completely blocked.
+       */
+
       if (
 
         uhis1InteractionAttempts <
@@ -3080,6 +2714,14 @@
 
       }
 
+
+      /*
+       * SIXTH interaction:
+       *
+       * Stop the animation immediately.
+       *
+       * Unlock the actual Photo Sphere Viewer.
+       */
 
       if (event) {
 
@@ -3110,6 +2752,22 @@
       }
 
 
+      /*
+       * The blocker is intentionally active during every intro.
+       *
+       * For OTHER PANORAMAS:
+       *
+       *   - do NOT count the interaction
+       *   - do NOT stop the animation
+       *   - do NOT unlock
+       *
+       * For Ühis1:
+       *
+       *   - this starts one interaction
+       *   - mouse click counts
+       *   - touch pointer counts
+       */
+
       introPointerDown =
         true;
 
@@ -3131,6 +2789,15 @@
       );
 
 
+      /*
+       * IMPORTANT:
+       *
+       * Count the interaction on POINTERDOWN.
+       *
+       * This makes a normal mouse click or phone tap count,
+       * even when there is absolutely no movement.
+       */
+
       if (
         currentPanorama ===
         'Ühis1.webp'
@@ -3143,6 +2810,14 @@
       }
 
       else {
+
+        /*
+         * Other panoramas:
+         *
+         * completely ignore the interaction.
+         *
+         * Their animation continues normally.
+         */
 
         event.preventDefault();
 
@@ -3169,6 +2844,11 @@
 
       }
 
+
+      /*
+       * Once the sixth Ühis1 interaction has unlocked the viewer,
+       * the blocker has already been removed.
+       */
 
       if (!isIntroActive) {
 
@@ -3209,6 +2889,13 @@
       }
 
 
+      /*
+       * During all intros the blocker prevents the actual viewer
+       * from receiving movement.
+       *
+       * This does NOT stop the animation.
+       */
+
       event.preventDefault();
 
       event.stopPropagation();
@@ -3232,6 +2919,11 @@
         'dragging'
       );
 
+
+      /*
+       * If the sixth interaction unlocked the viewer during
+       * pointerdown, the blocker is already display:none.
+       */
 
       if (!isIntroActive) {
 
@@ -3323,6 +3015,20 @@
        INTRO TOUCH
        ============================================================ */
 
+    /*
+     * Pointer Events above handle modern phones as well.
+     *
+     * These touch handlers are retained specifically for devices
+     * where the browser dispatches native touch events separately.
+     *
+     * IMPORTANT:
+     *
+     * Do NOT count touchstart here because on many browsers the
+     * same physical tap also produces a pointerdown.
+     *
+     * The six-count therefore belongs exclusively to pointerdown.
+     */
+
     blocker.addEventListener(
 
       'touchstart',
@@ -3362,6 +3068,14 @@
         introStartY =
           touch.clientY;
 
+
+        /*
+         * Prevent native browser handling.
+         *
+         * DO NOT increment the six counter here.
+         *
+         * Pointerdown already does that on supported browsers.
+         */
 
         event.preventDefault();
 
@@ -3899,6 +3613,11 @@
       generation
     ) {
 
+      /*
+       * EVERY NEW Ühis1 intro gets a completely fresh
+       * six-interaction sequence.
+       */
+
       uhis1InteractionAttempts =
         0;
 
@@ -4061,6 +3780,10 @@
           UHIS1_START_FISHEYE;
 
 
+        /* ======================================================
+           STAGE 0
+           ====================================================== */
+
         if (
 
           elapsed <
@@ -4080,10 +3803,14 @@
             );
 
 
+          const speedMultiplier =
+            2.0;
+
+
           currentStageSpinSpeed =
 
             baseSpinSpeed *
-            2.0;
+            speedMultiplier;
 
 
           currentPitch =
@@ -4101,6 +3828,10 @@
 
         }
 
+
+        /* ======================================================
+           STAGE 1A
+           ====================================================== */
 
         else if (
 
@@ -4125,10 +3856,14 @@
             );
 
 
+          const speedMultiplier =
+            2.0;
+
+
           currentStageSpinSpeed =
 
             baseSpinSpeed *
-            2.0;
+            speedMultiplier;
 
 
           currentPitch =
@@ -4157,6 +3892,10 @@
         }
 
 
+        /* ======================================================
+           STAGE 1 PAUSE
+           ====================================================== */
+
         else if (
 
           elapsed <
@@ -4183,6 +3922,10 @@
 
         }
 
+
+        /* ======================================================
+           STAGE 1B
+           ====================================================== */
 
         else if (
 
@@ -4363,6 +4106,10 @@
         }
 
 
+        /* ======================================================
+           STAGE 1B PAUSE
+           ====================================================== */
+
         else if (
 
           elapsed <
@@ -4432,6 +4179,10 @@
 
         }
 
+
+        /* ======================================================
+           STAGE 2
+           ====================================================== */
 
         else if (
 
@@ -4537,6 +4288,10 @@
         }
 
 
+        /* ======================================================
+           FINISH
+           ====================================================== */
+
         else {
 
           viewer.setOption(
@@ -4622,6 +4377,10 @@
 
         }
 
+
+        /* ======================================================
+           APPLY FRAME
+           ====================================================== */
 
         currentYaw +=
 
@@ -4924,6 +4683,10 @@
           true;
 
 
+        /*
+         * Fresh initial Ühis1 sequence.
+         */
+
         uhis1InteractionAttempts =
           0;
 
@@ -4947,16 +4710,6 @@
         );
 
 
-        /*
-         * CRITICAL PERFORMANCE POINT:
-         *
-         * Reveal and start the first animation immediately.
-         *
-         * Background preloading is scheduled AFTER this point.
-         *
-         * It therefore cannot delay the first animation.
-         */
-
         revealFirstPanorama();
 
 
@@ -4979,15 +4732,6 @@
             runUhis1SpecialAnimation(
               generation
             );
-
-
-            /*
-             * Start downloading the remaining panoramas only
-             * after the first animation has already entered its
-             * requestAnimationFrame loop.
-             */
-
-            startBackgroundPanoramaPreload();
 
           }
 
@@ -5081,6 +4825,11 @@
               true;
 
 
+            /*
+             * Every newly selected panorama starts with the
+             * interaction blocker active.
+             */
+
             blocker.classList.remove(
               'unlocked'
             );
@@ -5100,6 +4849,15 @@
             disableUserInteraction();
 
 
+            /*
+             * VERY IMPORTANT:
+             *
+             * The six-interaction counter is reset ONLY when
+             * Ühis1 is selected.
+             *
+             * It is NOT used by the other panoramas.
+             */
+
             if (
 
               panorama ===
@@ -5111,40 +4869,6 @@
                 0;
 
             }
-
-
-            /*
-             * IMPORTANT:
-             *
-             * Promote the clicked panorama immediately.
-             *
-             * If it was already preloaded, this Promise resolves
-             * essentially immediately.
-             *
-             * If it is still downloading, the same existing
-             * request is reused.
-             *
-             * If it has not started yet, this starts it with
-             * high priority.
-             */
-
-            const preloadPromise =
-
-              panorama ===
-                'Ühis1.webp'
-
-                ?
-
-                Promise.resolve({
-                  loaded:
-                    true
-                })
-
-                :
-
-                prioritizePanorama(
-                  panorama
-                );
 
 
             try {
@@ -5159,11 +4883,6 @@
                 'Ühis1.webp'
 
               ) {
-
-                /*
-                 * Ühis1 was already loaded during initial viewer
-                 * startup. No network request is necessary here.
-                 */
 
                 viewer.setOption(
                   'maxFov',
@@ -5222,6 +4941,12 @@
                   return;
 
                 }
+
+
+                viewer.setOption(
+                  'maxFov',
+                  UHIS1_INTRO_MAX_FOV
+                );
 
 
                 setUhis1IntroCamera();
@@ -5283,8 +5008,33 @@
                     }
 
 
+                    /*
+                     * Reset AGAIN immediately before starting the
+                     * actual Ühis1 animation.
+                     *
+                     * This guarantees that selecting Ühis1 from
+                     * the menu always starts at interaction #0.
+                     */
+
                     uhis1InteractionAttempts =
                       0;
+
+
+                    viewer.setOption(
+                      'maxFov',
+                      UHIS1_INTRO_MAX_FOV
+                    );
+
+
+                    viewer.setOption(
+                      'fisheye',
+                      UHIS1_START_FISHEYE
+                    );
+
+
+                    viewer.zoom(
+                      UHIS1_START_ZOOM
+                    );
 
 
                     runUhis1SpecialAnimation(
@@ -5304,38 +5054,6 @@
               /* =================================================
                  OTHER 4 PANORAMAS
                  ================================================= */
-
-              /*
-               * Wait for the preload to finish/decode FIRST.
-               *
-               * This is the important difference from the original:
-               *
-               * original:
-               *
-               *     click -> setPanorama -> network load -> decode
-               *
-               * new:
-               *
-               *     background load -> decode -> click -> setPanorama
-               *
-               * Therefore the visible panorama switch is normally
-               * limited to Photo Sphere Viewer's texture setup.
-               */
-
-              await preloadPromise;
-
-
-              if (
-
-                generation !==
-                animationGeneration
-
-              ) {
-
-                return;
-
-              }
-
 
               const startYaw =
 
@@ -5403,12 +5121,6 @@
               setRendererBackground();
 
 
-              /*
-               * Start the animation on the next rendering frame.
-               *
-               * There is no artificial timeout here.
-               */
-
               requestAnimationFrame(
 
                 () => {
@@ -5431,6 +5143,13 @@
 
                   }
 
+
+                  /*
+                   * No six-tap logic is involved here.
+                   *
+                   * Mouse clicks and phone taps cannot stop
+                   * this animation.
+                   */
 
                   runOtherIntroAnimation(
 
@@ -5501,7 +5220,7 @@
 
 
     /* ============================================================
-       BUTTON POINTER PREVENTION
+       PREVENT BUTTONS FROM BECOMING PAN INPUT
        ============================================================ */
 
     locationButtons.addEventListener(
