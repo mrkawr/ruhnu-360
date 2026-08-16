@@ -12,23 +12,14 @@
 
   <title>Bioloogid Ruhnus 360</title>
 
-  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-
-  <link rel="preload" href="uhis1-preview.webp" as="image" fetchpriority="high">
-  <link rel="preload" href="Ühis1.webp" as="image" fetchpriority="low">
-  <link rel="preload" href="Tuletorn.webp" as="image" fetchpriority="low">
-  <link rel="preload" href="Puukirik.webp" as="image" fetchpriority="low">
-  <link rel="preload" href="Kirik12.webp" as="image" fetchpriority="low">
-  <link rel="preload" href="Päikeseloojang.jpg" as="image" fetchpriority="low">
-
   <link
     rel="stylesheet"
     href="https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/core@5/index.css"
   >
 
-  <script defer src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 
-  <script defer src="https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/core@5/index.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/core@5/index.js"></script>
 
   <style>
 
@@ -1094,7 +1085,7 @@
     <button
       class="location-button uhis1"
       type="button"
-      data-panorama="Ühis1.webp"
+      data-panorama="Ühis2_8K.webp"
       aria-label="Ühispilt"
       title="Ühispilt"
     ></button>
@@ -1103,7 +1094,7 @@
     <button
       class="location-button lighthouse"
       type="button"
-      data-panorama="Tuletorn.jpg"
+      data-panorama="Tuletorn.webp"
       aria-label="Tuletorn"
       title="Tuletorn"
     ></button>
@@ -1112,7 +1103,7 @@
     <button
       class="location-button sunset"
       type="button"
-      data-panorama="Päikeseloojang.jpg"
+      data-panorama="Rand.webp"
       aria-label="Päikeseloojang"
       title="Päikeseloojang"
     ></button>
@@ -1121,7 +1112,7 @@
     <button
       class="location-button wooden-house"
       type="button"
-      data-panorama="Puukirik.jpg"
+      data-panorama="Puukirik.webp"
       aria-label="Puukirik"
       title="Puukirik"
     ></button>
@@ -1159,58 +1150,29 @@
 
 
   <script>
-    document.addEventListener('DOMContentLoaded', () => {
 
 
     /* ============================================================
        PANORAMA CONFIG
        ============================================================ */
 
-    const INITIAL_LOAD_PANORAMA = 'Ühis1.webp';
-
-    const PANORAMA_ASSET_MAP = {
-
-      'Tuletorn.jpg': 'Tuletorn.webp',
-
-      'Puukirik.jpg': 'Puukirik.webp',
-
-      'Kirik12.webp': 'Kirik12.webp',
-
-      'Ühis1.webp': 'uhis1-preview.webp',
-
-      'Päikeseloojang.jpg': 'Päikeseloojang.jpg'
-
-    };
-
-    function resolvePanoramaAsset(panorama, preview = false) {
-
-      if (preview && panorama === 'Ühis1.webp') {
-
-        return 'uhis1-preview.webp';
-
-      }
-
-      return PANORAMA_ASSET_MAP[panorama] || panorama;
-
-    }
-
     const PANORAMAS = {
 
-      'Tuletorn.jpg': {
+      'Tuletorn.webp': {
 
         START_YAW:
           -60
       },
 
 
-      'Päikeseloojang.jpg': {
+      'Rand.webp': {
 
         START_YAW:
           300
       },
 
 
-      'Puukirik.jpg': {
+      'Puukirik.webp': {
 
         START_YAW:
           120
@@ -1224,53 +1186,13 @@
       },
 
 
-      'Ühis1.webp': {
-
-        START_YAW:
-          0
-      },
-
-
-      'Rand.webp': {
+      'Ühis2_8K.webp': {
 
         START_YAW:
           0
       }
 
     };
-
-    const PANORAMA_URLS = Object.keys(PANORAMAS).map(resolvePanoramaAsset);
-
-    function preloadImage(url) {
-
-      return new Promise((resolve) => {
-
-        const img = new Image();
-
-        img.decoding = 'async';
-        img.loading = 'eager';
-
-        img.onload = () => resolve(url);
-
-        img.onerror = () => resolve(url);
-
-        img.src = url;
-
-      });
-
-    }
-
-    function preloadPanoramas() {
-
-      const uniqueUrls = [...new Set(PANORAMA_URLS)];
-
-      uniqueUrls.forEach((url) => {
-
-        preloadImage(url);
-
-      });
-
-    }
 
 
     /* ============================================================
@@ -1298,7 +1220,7 @@
 
 
     let currentPanorama =
-      INITIAL_LOAD_PANORAMA;
+      'Ühis2_8K.webp';
 
 
     let currentYaw =
@@ -1598,7 +1520,7 @@
           viewerElement,
 
         panorama:
-          resolvePanoramaAsset(INITIAL_LOAD_PANORAMA, true),
+          'Ühis2_8K.webp',
 
         navbar:
           false,
@@ -1990,12 +1912,12 @@
     function setUhis1IntroCamera() {
 
       currentPanorama =
-        'Ühis1.webp';
+        'Ühis2_8K.webp';
 
 
       currentYaw =
         getPanoramaStartYaw(
-          'Ühis1.webp'
+          'Ühis2_8K.webp'
         );
 
 
@@ -2662,7 +2584,7 @@
 
       if (
         currentPanorama !==
-        'Ühis1.webp'
+        'Ühis2_8K.webp'
       ) {
 
         return;
@@ -2758,7 +2680,7 @@
 
       if (
         currentPanorama !==
-        'Ühis1.webp'
+        'Ühis2_8K.webp'
       ) {
 
         return;
@@ -2878,7 +2800,7 @@
 
       if (
         currentPanorama ===
-        'Ühis1.webp'
+        'Ühis2_8K.webp'
       ) {
 
         registerUhis1Interaction(
@@ -3715,7 +3637,7 @@
 
 
       updateActiveButton(
-        'Ühis1.webp'
+        'Ühis2_8K.webp'
       );
 
 
@@ -4433,7 +4355,7 @@
 
 
           updateActiveButton(
-            'Ühis1.webp'
+            'Ühis2_8K.webp'
           );
 
 
@@ -4619,7 +4541,7 @@
         if (
 
           currentPanorama ===
-          'Ühis1.webp'
+          'Ühis2_8K.webp'
 
         ) {
 
@@ -4780,37 +4702,12 @@
         );
 
 
-        setIntroCamera(
-          INITIAL_LOAD_PANORAMA
-        );
+        setUhis1IntroCamera();
 
 
         updateActiveButton(
-          INITIAL_LOAD_PANORAMA
+          'Ühis2_8K.webp'
         );
-
-
-        if (typeof window.requestIdleCallback === 'function') {
-
-          window.requestIdleCallback(() => {
-
-            preloadImage('Ühis1.webp');
-            preloadPanoramas();
-
-          });
-
-        }
-
-        else {
-
-          setTimeout(() => {
-
-            preloadImage('Ühis1.webp');
-            preloadPanoramas();
-
-          }, 150);
-
-        }
 
 
         revealFirstPanorama();
@@ -4964,7 +4861,7 @@
             if (
 
               panorama ===
-              'Ühis1.webp'
+              'Ühis2_8K.webp'
 
             ) {
 
@@ -4983,11 +4880,9 @@
               if (
 
                 panorama ===
-                'Ühis1.webp'
+                'Ühis2_8K.webp'
 
               ) {
-
-                const panoramaAsset = resolvePanoramaAsset(panorama);
 
                 viewer.setOption(
                   'maxFov',
@@ -4999,7 +4894,7 @@
 
                   await viewer.setPanorama(
 
-                    panoramaAsset,
+                    panorama,
 
                     {
 
@@ -5166,14 +5061,12 @@
                   panorama
                 );
 
-              const panoramaAsset = resolvePanoramaAsset(panorama);
-
 
               const loaded =
 
                 await viewer.setPanorama(
 
-                  panoramaAsset,
+                  panorama,
 
                   {
 
@@ -5391,8 +5284,6 @@
       }
 
     );
-
-    });
 
 
   </script>
